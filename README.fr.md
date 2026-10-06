@@ -52,13 +52,13 @@ Il fait partie de **Bobine**, une petite suite d'outils pour vidéothèque, avec
 
 **Windows 10 et 11 :**
 
-1. Télécharge `Bobine Style_x.y.z_x64-setup.exe` depuis la [dernière version](https://github.com/MarcValat/BobineStyle/releases/latest).
+1. Télécharge `Bobine.Style_x.y.z_x64-setup.exe` depuis la [dernière version](https://github.com/MarcValat/BobineStyle/releases/latest).
 2. Lance-le. L'installateur n'est pas signé par un certificat, Windows SmartScreen peut donc afficher *« Windows a protégé votre ordinateur »* : clique sur **Informations complémentaires**, puis **Exécuter quand même**.
 
 **Linux** (Ubuntu 22.04 ou plus récent, Debian et leurs dérivées) :
 
-1. Télécharge `Bobine Style_x.y.z_amd64.deb` depuis la [dernière version](https://github.com/MarcValat/BobineStyle/releases/latest).
-2. Installe-le depuis son dossier avec `sudo apt install "./Bobine Style_x.y.z_amd64.deb"`, puis lance-le depuis le menu des applications.
+1. Télécharge `Bobine.Style_x.y.z_amd64.deb` depuis la [dernière version](https://github.com/MarcValat/BobineStyle/releases/latest).
+2. Installe-le depuis son dossier avec `sudo apt install ./Bobine.Style_x.y.z_amd64.deb`, puis lance-le depuis le menu des applications.
 3. Trebuchet MS n'est pas fournie avec Linux : installe-la (`sudo apt install ttf-mscorefonts-installer`) pour qu'elle puisse être jointe aux fichiers.
 
 Le moteur et ffmpeg sont fournis avec l'application. Quand une nouvelle version sort, l'application la propose et l'installe en un clic.

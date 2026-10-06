@@ -52,13 +52,13 @@ It's part of **Bobine**, a small suite of tools for a video library, next to [Bo
 
 **Windows 10 and 11:**
 
-1. Download `Bobine Style_x.y.z_x64-setup.exe` from the [latest release](https://github.com/MarcValat/BobineStyle/releases/latest).
+1. Download `Bobine.Style_x.y.z_x64-setup.exe` from the [latest release](https://github.com/MarcValat/BobineStyle/releases/latest).
 2. Run it. The installer isn't signed with a certificate, so Windows SmartScreen may say *"Windows protected your PC"*: click **More info**, then **Run anyway**.
 
 **Linux** (Ubuntu 22.04 or newer, Debian and their derivatives):
 
-1. Download `Bobine Style_x.y.z_amd64.deb` from the [latest release](https://github.com/MarcValat/BobineStyle/releases/latest).
-2. Install it from its folder with `sudo apt install "./Bobine Style_x.y.z_amd64.deb"`, then start it from the applications menu.
+1. Download `Bobine.Style_x.y.z_amd64.deb` from the [latest release](https://github.com/MarcValat/BobineStyle/releases/latest).
+2. Install it from its folder with `sudo apt install ./Bobine.Style_x.y.z_amd64.deb`, then start it from the applications menu.
 3. Trebuchet MS isn't part of Linux: install it (`sudo apt install ttf-mscorefonts-installer`) so it can be attached to the files.
 
 The engine and ffmpeg come with the app. When a new version comes out, the app offers it and installs it in one click.
