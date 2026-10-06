@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import threading
 from pathlib import Path
 
 import click
@@ -14,7 +15,8 @@ from bobinestyle.ffmpeg_backend import (
     probe_streams,
     subtitle_streams,
 )
-from bobinestyle.mux import FRENCH_CODES, MuxError, default_output, mux, plan
+from bobinestyle.batch import FileResult, Status, run_batch, summary
+from bobinestyle.mux import FRENCH_CODES, MuxError, MuxPlan, default_output, mux, plan
 from bobinestyle.roles import ScriptReport, analyze
 from bobinestyle.scale import screen_scale
 from bobinestyle.style import apply_house_style
@@ -135,29 +137,7 @@ def mux_command(file: str, output: str | None, plan_only: bool) -> None:
         p = plan(file)
     except FFmpegError as exc:
         _fail(str(exc))
-    if p.audio is None:
-        click.echo("Pas d'audio : sous-titres complets par défaut")
-    else:
-        lang = p.audio.language or "langue inconnue"
-        choice = "forcés" if p.audio.language in FRENCH_CODES else "complets"
-        click.echo(f"Audio par défaut : {lang} {p.audio.title or ''}".rstrip() + f"  ->  sous-titres {choice} par défaut")
-    for t in p.tracks:
-        s = t.stream
-        if t.french:
-            flags = " ".join(f for f, on in (("défaut", t.default), ("forcés", t.forced)) if on)
-            action = "restylé" if t.text is not None else "copié"
-            lines = f"{t.dialogue_lines} répliques" if t.dialogue_lines is not None else "?"
-            click.echo(f"@{s.index}  {s.title or '-'}  ->  {t.title}  {flags}  ({action}, {lines})")
-        else:
-            click.echo(f"@{s.index}  {s.language or '-'} {s.title or ''}  ->  inchangé".rstrip())
-        for note in t.notes:
-            click.echo(f"      {note}")
-    if p.fonts:
-        click.echo(f"Polices jointes : {', '.join(f.path.name for f in p.fonts)}")
-    if p.fonts_present:
-        click.echo(f"Déjà dans le MKV : {', '.join(p.fonts_present)}")
-    for warning in p.warnings:
-        click.echo(f"⚠ {warning}")
+    _echo_plan(p)
     if not any(t.french for t in p.tracks):
         _fail("aucune piste de sous-titres française")
     if plan_only:
@@ -168,6 +148,78 @@ def mux_command(file: str, output: str | None, plan_only: bool) -> None:
     except MuxError as exc:
         _fail(str(exc))
     click.echo(f"Écrit et vérifié : {written}")
+
+
+def _echo_plan(p: MuxPlan, indent: str = "") -> None:
+    if p.audio is None:
+        click.echo(indent + "Pas d'audio : sous-titres complets par défaut")
+    else:
+        lang = p.audio.language or "langue inconnue"
+        choice = "forcés" if p.audio.language in FRENCH_CODES else "complets"
+        click.echo(f"{indent}Audio par défaut : {lang} {p.audio.title or ''}".rstrip() + f"  ->  sous-titres {choice} par défaut")
+    for t in p.tracks:
+        s = t.stream
+        if t.french:
+            flags = " ".join(f for f, on in (("défaut", t.default), ("forcés", t.forced)) if on)
+            action = "restylé" if t.text is not None else "copié"
+            lines = f"{t.dialogue_lines} répliques" if t.dialogue_lines is not None else "?"
+            click.echo(f"{indent}@{s.index}  {s.title or '-'}  ->  {t.title}  {flags}  ({action}, {lines})")
+        else:
+            click.echo(f"{indent}@{s.index}  {s.language or '-'} {s.title or ''}  ->  inchangé".rstrip())
+        for note in t.notes:
+            click.echo(f"{indent}      {note}")
+    if p.fonts:
+        click.echo(f"{indent}Polices jointes : {', '.join(f.path.name for f in p.fonts)}")
+    if p.fonts_present:
+        click.echo(f"{indent}Déjà dans le MKV : {', '.join(p.fonts_present)}")
+    for warning in p.warnings:
+        click.echo(f"{indent}⚠ {warning}")
+
+
+@main.command()
+@click.argument("folder", type=click.Path(exists=True, file_okay=False))
+@click.option("--output", "-o", type=click.Path(file_okay=False), help="Dossier de sortie (<dossier>/Output par défaut).")
+@click.option("--recursive", "-r", is_flag=True, help="Inclut les sous-dossiers (saisons).")
+@click.option("--jobs", "-j", type=click.IntRange(1, 8), default=2, show_default=True, help="Fichiers traités en parallèle.")
+@click.option("--plan", "plan_only", is_flag=True, help="Affiche ce qui serait fait, sans rien écrire.")
+@click.option("--force", is_flag=True, help="Refait les fichiers déjà présents dans le dossier de sortie.")
+@click.option("--details", is_flag=True, help="Affiche le détail des pistes de chaque fichier.")
+def batch(folder: str, output: str | None, recursive: bool, jobs: int, plan_only: bool, force: bool, details: bool) -> None:
+    """Traite tous les MKV d'un dossier."""
+    root = Path(folder)
+    lock = threading.Lock()
+
+    def report(r: FileResult) -> None:
+        name = str(r.source.relative_to(root))
+        with lock:
+            if r.status is Status.ERROR:
+                click.echo(f"✗ {name} : {r.error.splitlines()[-1] if r.error else 'erreur'}")
+            elif r.status is Status.EXISTS:
+                click.echo(f"= {name} : déjà dans la sortie")
+            elif r.status is Status.NO_FRENCH:
+                click.echo(f"- {name} : pas de sous-titres français")
+            else:
+                french = sum(t.french for t in r.plan.tracks)
+                mark = "✓" if r.status is Status.DONE else "?"
+                click.echo(f"{mark} {name} : {french} piste(s) FR, {len(r.plan.fonts)} police(s) jointe(s)")
+            if details and r.plan and r.status in (Status.DONE, Status.PLANNED):
+                _echo_plan(r.plan, indent="    ")
+
+    results = run_batch(
+        root, Path(output) if output else None, recursive, jobs, plan_only, force, on_result=report
+    )
+    if not results:
+        _fail("aucun fichier MKV dans ce dossier")
+    labels = {
+        Status.DONE: "traité(s)",
+        Status.PLANNED: "à traiter",
+        Status.EXISTS: "déjà fait(s)",
+        Status.NO_FRENCH: "sans sous-titres français",
+        Status.ERROR: "en erreur",
+    }
+    click.echo("Bilan : " + ", ".join(f"{n} {labels[status]}" for status, n in summary(results)))
+    if any(r.status is Status.ERROR for r in results):
+        sys.exit(1)
 
 
 def _echo_report(report: ScriptReport) -> None:
