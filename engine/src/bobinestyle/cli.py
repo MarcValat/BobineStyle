@@ -4,7 +4,16 @@ import sys
 
 import click
 
-from bobinestyle.ffmpeg_backend import FFmpegError, main_video, probe_streams, subtitle_streams
+from bobinestyle.ass import parse_ass
+from bobinestyle.ffmpeg_backend import (
+    TEXT_FORMATS,
+    FFmpegError,
+    extract_subtitle_text,
+    main_video,
+    probe_streams,
+    subtitle_streams,
+)
+from bobinestyle.roles import Role, ScriptReport, analyze
 from bobinestyle.scale import screen_scale
 
 
@@ -48,3 +57,64 @@ def probe(file: str) -> None:
     fonts = [s.filename or "?" for s in streams if s.kind == "Attachment"]
     if fonts:
         click.echo(f"Pièces jointes : {', '.join(fonts)}")
+
+
+ROLE_LABELS = {
+    Role.DIALOGUE: "dialogue",
+    Role.ITALIC: "italique",
+    Role.TOP: "haut",
+    Role.TOP_ITALIC: "haut italique",
+    Role.DASHES: "tirets",
+    Role.DASHES_ITALIC: "tirets italique",
+    Role.OVERLAP: "overlap",
+    Role.MARGINS: "marges",
+    Role.TYPESETTING: "typo (inchangé)",
+    Role.UNUSED: "inutilisé",
+}
+
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--track", "-t", type=int, help="Numéro de la piste (@N de probe) ; toutes par défaut.")
+def inspect(file: str, track: int | None) -> None:
+    """Analyse les styles des pistes de sous-titres texte, sans rien modifier."""
+    try:
+        subs = subtitle_streams(probe_streams(file))
+    except FFmpegError as exc:
+        _fail(str(exc))
+    if track is not None:
+        subs = [s for s in subs if s.index == track]
+        if not subs:
+            _fail(f"pas de piste de sous-titres @{track}")
+
+    for s in subs:
+        click.echo(f"\n@{s.index}  {s.codec}  {s.language or '-'}  {s.title or ''}".rstrip())
+        if s.codec not in TEXT_FORMATS:
+            click.echo("  format image ou non supporté : ignoré")
+            continue
+        try:
+            text = extract_subtitle_text(file, s.index, s.codec)
+        except FFmpegError as exc:
+            _fail(str(exc))
+        if TEXT_FORMATS[s.codec] == "srt":
+            count = sum(1 for line in text.splitlines() if "-->" in line)
+            click.echo(f"  SRT, {count} répliques : sera converti en ASS au style maison")
+            continue
+        _echo_report(analyze(parse_ass(text)))
+
+
+def _echo_report(report: ScriptReport) -> None:
+    res = f"{report.play_res[0]}x{report.play_res[1]}" if report.play_res else "absent (384x288)"
+    sbas = "oui" if report.scaled_border_and_shadow else "non"
+    if report.keep_play_res:
+        decision = f"{report.positioned_lines} lignes positionnées : PlayRes conservé"
+    else:
+        decision = "aucune ligne positionnée : PlayRes remplacé par la taille de la vidéo"
+    click.echo(f"  PlayRes {res}   ScaledBorderAndShadow {sbas}")
+    click.echo(f"  {decision}")
+    click.echo(f"  {'Style':<24} {'Rôle':<16} {'Lignes':>6} {'Dialogue':>8}  Détails")
+    for r in report.styles:
+        click.echo(
+            f"  {r.style.name[:24]:<24} {ROLE_LABELS[r.role]:<16} {r.lines:>6} {r.dialogue_lines:>8}  "
+            f"{', '.join(r.reasons)}".rstrip()
+        )

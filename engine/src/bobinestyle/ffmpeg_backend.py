@@ -88,6 +88,29 @@ def probe_streams(path: str) -> list[StreamInfo]:
     return parse_streams(ffmpeg_info(path))
 
 
+TEXT_FORMATS = {"ass": "ass", "ssa": "ass", "subrip": "srt", "srt": "srt"}
+
+
+def extract_subtitle_text(path: str, track: int, codec: str) -> str:
+    """Subtitle stream ``0:s:track`` as text, unconverted: ASS keeps its
+    header and styles, SRT stays SRT. ``-copyts`` keeps the container's
+    timestamps (ffmpeg otherwise shifts them by the file's start time)."""
+    fmt = TEXT_FORMATS.get(codec)
+    if fmt is None:
+        raise FFmpegError(f"Unsupported subtitle format: {codec}")
+    proc = subprocess.run(
+        [
+            resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-copyts", "-i", path,
+            "-map", f"0:s:{track}", "-c:s", "copy", "-f", fmt, "-",
+        ],
+        capture_output=True,
+        creationflags=_SUBPROCESS_FLAGS,
+    )
+    if proc.returncode != 0:
+        raise FFmpegError(f"Cannot extract subtitle track {track}:\n{proc.stderr.decode(errors='replace')}")
+    return proc.stdout.decode("utf-8-sig", errors="replace").replace("\r\n", "\n")
+
+
 def main_video(streams: list[StreamInfo]) -> StreamInfo | None:
     """The first real video stream (cover art is skipped)."""
     return next((s for s in streams if s.kind == "Video" and not s.attached_pic and s.width), None)
