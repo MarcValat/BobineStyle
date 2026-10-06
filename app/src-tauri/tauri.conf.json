@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && cd ../engine && uv run python packaging/build_sidecar.py",
     "frontendDist": "../dist"
   },
   "app": {
@@ -27,7 +27,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,6 +37,19 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "binaries/bobinestyle-engine/": "engine/"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "./windows/installer-hooks.nsh",
+        "languages": [
+          "English",
+          "French"
+        ],
+        "displayLanguageSelector": false
+      }
+    },
     "shortDescription": "Applique le style maison aux sous-titres français des MKV",
     "publisher": "Marc Valat"
   }
