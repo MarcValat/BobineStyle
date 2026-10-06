@@ -4,9 +4,12 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
 
+from bobinestyle.cancellation import Cancelled, current_cancel_event
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 
 # Never flash a console window per ffmpeg call once packaged without a console.
@@ -31,8 +34,56 @@ def resolve_ffmpeg() -> str:
         raise FFmpegError("ffmpeg not found: neither on PATH nor through the imageio-ffmpeg package.") from exc
 
 
-def run_checked(cmd: list[str]) -> bytes:
-    proc = subprocess.run(cmd, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
+# How often a running ffmpeg checks for a cancellation.
+_CANCEL_POLL_S = 0.2
+_OUT_TIME_RE = re.compile(rb"^out_time_us=(\d+)")
+
+
+def _run(cmd: list[str], cwd: Path | None = None, on_time: Callable[[float], None] | None = None) -> subprocess.CompletedProcess[bytes]:
+    """Run ffmpeg, killing it (raising ``Cancelled``) as soon as the job
+    running it is cancelled. With ``on_time``, ffmpeg reports how far it
+    got (seconds of output written) as it goes."""
+    event = current_cancel_event()
+    if event is None and on_time is None:
+        return subprocess.run(cmd, cwd=cwd, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
+    if event is not None and event.is_set():
+        raise Cancelled()
+    if on_time is not None:
+        cmd = [cmd[0], "-progress", "pipe:1", "-nostats", *cmd[1:]]
+    with subprocess.Popen(
+        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_SUBPROCESS_FLAGS
+    ) as proc:
+        out: list[bytes] = []
+        err: list[bytes] = []
+
+        def read_out() -> None:
+            for line in proc.stdout:
+                out.append(line)
+                if on_time and (match := _OUT_TIME_RE.match(line)):
+                    on_time(int(match.group(1)) / 1e6)
+
+        readers = [
+            threading.Thread(target=read_out, daemon=True),
+            threading.Thread(target=lambda: err.append(proc.stderr.read()), daemon=True),
+        ]
+        for reader in readers:
+            reader.start()
+        while True:
+            try:
+                proc.wait(timeout=_CANCEL_POLL_S)
+                break
+            except subprocess.TimeoutExpired:
+                if event is not None and event.is_set():
+                    proc.kill()
+                    proc.wait()
+                    raise Cancelled() from None
+        for reader in readers:
+            reader.join()
+    return subprocess.CompletedProcess(cmd, proc.returncode, b"".join(out), b"".join(err))
+
+
+def run_checked(cmd: list[str], on_time: Callable[[float], None] | None = None) -> bytes:
+    proc = _run(cmd, on_time=on_time)
     if proc.returncode != 0:
         raise FFmpegError(f"ffmpeg failed:\n{' '.join(cmd)}\n{proc.stderr.decode(errors='replace')}")
     return proc.stdout
@@ -42,9 +93,7 @@ def ffmpeg_info(path: str) -> str:
     """``ffmpeg -i path``'s report."""
     if not Path(path).is_file():
         raise FFmpegError(f"File not found: {path}")
-    proc = subprocess.run(
-        [resolve_ffmpeg(), "-hide_banner", "-i", path], capture_output=True, creationflags=_SUBPROCESS_FLAGS
-    )
+    proc = _run([resolve_ffmpeg(), "-hide_banner", "-i", path])
     # UTF-8 explicitly: ffmpeg writes tags that way, cp1252 would mangle titles.
     info = proc.stderr.decode("utf-8", errors="replace")
     if "Invalid data found" in info:
@@ -107,11 +156,9 @@ def dump_attachments(path: str, folder: Path) -> list[Path]:
     """Write ``path``'s attachments (fonts) into ``folder``."""
     before = set(folder.iterdir())
     # ffmpeg dumps before complaining that there is no output: ignore that.
-    subprocess.run(
+    _run(
         [resolve_ffmpeg(), "-hide_banner", "-loglevel", "quiet", "-y", "-dump_attachment:t", "", "-i", str(Path(path).resolve())],
         cwd=folder,
-        capture_output=True,
-        creationflags=_SUBPROCESS_FLAGS,
     )
     return sorted(set(folder.iterdir()) - before)
 
@@ -126,13 +173,11 @@ def extract_subtitle_text(path: str, track: int, codec: str) -> str:
     fmt = TEXT_FORMATS.get(codec)
     if fmt is None:
         raise FFmpegError(f"Unsupported subtitle format: {codec}")
-    proc = subprocess.run(
+    proc = _run(
         [
             resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-copyts", "-i", path,
             "-map", f"0:s:{track}", "-c:s", "copy", "-f", fmt, "-",
-        ],
-        capture_output=True,
-        creationflags=_SUBPROCESS_FLAGS,
+        ]
     )
     if proc.returncode != 0:
         raise FFmpegError(f"Cannot extract subtitle track {track}:\n{proc.stderr.decode(errors='replace')}")

@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -197,7 +198,9 @@ def default_output(source: str) -> Path:
     return path.parent / "Output" / path.name
 
 
-def mux(p: MuxPlan, output: str | Path) -> Path:
+def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None = None) -> Path:
+    """Write ``p.source`` remuxed to ``output``; ``progress`` hears how far
+    the copy got (0 to 1)."""
     output = Path(output)
     if output.resolve() == Path(p.source).resolve():
         raise MuxError("la sortie ne peut pas remplacer le fichier source")
@@ -247,7 +250,8 @@ def mux(p: MuxPlan, output: str | Path) -> Path:
                     resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y", "-copyts", *inputs,
                     *maps, *attach, "-map_metadata", "0", "-map_chapters", "0", "-metadata", "title=",
                     *tags, "-c", "copy", "-f", "matroska", str(partial),
-                ]
+                ],
+                on_time=_progress_reporter(p.source, progress),
             )
         verify(p, str(partial))
         os.replace(partial, output)
@@ -256,6 +260,13 @@ def mux(p: MuxPlan, output: str | Path) -> Path:
     finally:
         partial.unlink(missing_ok=True)
     return output
+
+
+def _progress_reporter(source: str, progress: Callable[[float], None] | None) -> Callable[[float], None] | None:
+    duration = container_duration(ffmpeg_info(source)) if progress else None
+    if not progress or not duration:
+        return None
+    return lambda seconds: progress(seconds / duration)
 
 
 def _unique(name: str, taken: set[str]) -> str:

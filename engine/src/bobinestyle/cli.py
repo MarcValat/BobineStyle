@@ -237,3 +237,34 @@ def _echo_report(report: ScriptReport) -> None:
             f"  {r.style.name[:24]:<24} {r.role.label:<16} {r.lines:>6} {r.dialogue_lines:>8}  "
             f"{', '.join(r.reasons)}".rstrip()
         )
+
+
+DEV_PORT = 8758
+
+
+@main.command()
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", type=int, default=DEV_PORT, show_default=True, help="L'application en choisit un libre.")
+@click.option("--parent-pid", type=int, help="S'arrête dès que ce processus (l'application) disparaît.")
+def serve(host: str, port: int, parent_pid: int | None) -> None:
+    """Lance le serveur HTTP local utilisé par l'application (docs : /docs)."""
+    import os
+
+    import uvicorn
+
+    from bobinestyle.server import app
+
+    if parent_pid is not None:
+        from bobinestyle.parent_watchdog import exit_when_parent_dies
+
+        exit_when_parent_dies(parent_pid)
+    # A packaged windowed exe has no stdout/stderr: uvicorn's logging
+    # setup crashes on the None stream.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+    click.echo(f"Bobine Style sur http://{host}:{port} (docs : /docs)", err=True)
+    # The app object, not "module:attr": the string form fails inside a
+    # PyInstaller-frozen build.
+    uvicorn.run(app, host=host, port=port)
