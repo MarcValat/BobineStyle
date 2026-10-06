@@ -1,0 +1,425 @@
+/* Design tokens, SyncAudio's palette (shared by the Bobine suite). Each is light-dark(light, dark):
+   which applies follows `color-scheme` (Windows' theme, or data-theme). */
+:root {
+  color-scheme: light dark;
+  --accent: light-dark(#396cd8, #6d9eff);
+  --accent-hover: light-dark(#2f5ab8, #85aeff);
+  --on-accent: light-dark(#ffffff, #10141c);
+  --bg: light-dark(#f3f4f6, #1c1d21);
+  --surface: light-dark(#ffffff, #26272c);
+  --surface-sunken: light-dark(#f0f1f4, #2f3036);
+  --border: light-dark(rgba(15, 15, 15, 0.12), rgba(255, 255, 255, 0.12));
+  --border-strong: light-dark(rgba(15, 15, 15, 0.25), rgba(255, 255, 255, 0.25));
+  --text: light-dark(#0f0f0f, #f2f2f2);
+  --text-muted: light-dark(rgba(15, 15, 15, 0.6), rgba(242, 242, 242, 0.6));
+  --error: light-dark(#cc3333, #ff6b6b);
+  --success: light-dark(#2a8c4a, #57c785);
+  /* SyncAudio's "drift" orange: anything to double-check. */
+  --warn: #d38a39;
+  --warn-soft: light-dark(rgba(211, 138, 57, 0.16), rgba(211, 138, 57, 0.22));
+  --radius: 12px;
+  --radius-sm: 8px;
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, "SF Mono", Menlo, monospace;
+
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A forced theme (Options, to come); none: Windows' own. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+button,
+select,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+button.wide {
+  width: 100%;
+}
+button.big {
+  padding: 9px 16px;
+}
+button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+select,
+input {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.engine-badge {
+  font-size: 12px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+.engine-badge.unreachable {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.engine-badge button {
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+}
+
+.results {
+  min-width: 0;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.results-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint,
+.muted {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.segmented {
+  display: flex;
+}
+.segmented button {
+  flex: 1;
+  border-radius: 0;
+}
+.segmented button:first-child {
+  border-radius: var(--radius-sm) 0 0 7px;
+}
+.segmented button:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-left: none;
+}
+
+.error {
+  color: var(--error);
+  margin: 0;
+}
+
+.warning {
+  color: var(--warn);
+  margin: 0;
+}
+
+.warn-text {
+  color: var(--warn);
+}
+
+.placeholder {
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 520px;
+  margin: 0 auto;
+}
+.placeholder-title {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+/* --- Bobine Style ---------------------------------------------------------- */
+
+.checkbox {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.list-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  text-align: left;
+  font-size: 12.5px;
+}
+button.link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+button.icon {
+  padding: 0 7px;
+  font-size: 12px;
+  line-height: 22px;
+}
+
+.tag {
+  font-size: 11.5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.pill {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 0 8px;
+  margin-right: 4px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+.pill.accent {
+  background: light-dark(rgba(57, 108, 216, 0.12), rgba(109, 158, 255, 0.18));
+  color: var(--accent);
+}
+
+.success-text {
+  color: var(--success);
+}
+.error-text {
+  color: var(--error);
+}
+
+table.file-table,
+table.tracks {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+table.file-table {
+  table-layout: fixed;
+}
+table.file-table th,
+table.tracks th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+table.file-table th:nth-child(1) {
+  width: 40%;
+}
+table.file-table th:nth-child(3) {
+  width: 110px;
+}
+table.file-table th:nth-child(4) {
+  width: 150px;
+}
+table.file-table th:nth-child(5) {
+  width: 40px;
+}
+table.file-table td,
+table.tracks td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+table.file-table tbody tr {
+  cursor: pointer;
+}
+table.file-table tbody tr:hover {
+  background: var(--surface-sunken);
+}
+table.file-table tbody tr.selected {
+  background: light-dark(rgba(57, 108, 216, 0.1), rgba(109, 158, 255, 0.14));
+}
+table.file-table td.file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+tr.dim td {
+  color: var(--text-muted);
+}
+.actions-cell {
+  text-align: right;
+}
+
+.progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+.done-cell {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.detail p {
+  margin: 0;
+}
+.detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.detail-head h2 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+table.tracks tr.notes td {
+  padding-top: 0;
+}
+table.tracks tr:has(+ tr.notes) td {
+  border-bottom: none;
+}
+.note {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 14px;
+}
+
+.fonts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.output-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12.5px;
+}
+.output-line .path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
