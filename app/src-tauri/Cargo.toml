@@ -1,6 +1,6 @@
 [package]
 name = "bobinestyle"
-version = "0.1.0"
+version = "1.0.0"
 description = "Applique le style maison aux sous-titres français des MKV"
 authors = ["Marc Valat"]
 edition = "2024"
