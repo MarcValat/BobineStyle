@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from bobinestyle.measure import text_width
+from bobinestyle.measure import centring_margin
 from bobinestyle.roles import Role
 from bobinestyle.scale import screen_scale
 from bobinestyle.style import FONT, FONT_SIZE, MARGIN_SIDE, house_fields
@@ -172,8 +172,7 @@ def srt_to_ass(cues: list[Cue], video_size: tuple[int, int] | None) -> str:
     for line in lines:
         if line.role in (Role.DASHES, Role.DASHES_ITALIC):
             italic = line.role is Role.DASHES_ITALIC
-            widest = max(text_width(p, FONT, size, True, italic) for p in _plain_lines(line.text))
-            line.margin_l = max(round(MARGIN_SIDE * k), round((width - widest) / 2))
+            line.margin_l = centring_margin(_plain_lines(line.text), FONT, size, italic, width, MARGIN_SIDE * k)
 
     used = [Role.DIALOGUE] + [r for r in STYLE_NAMES if r is not Role.DIALOGUE and any(l.role is r for l in lines)]
     styles = []

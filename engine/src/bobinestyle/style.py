@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 
 from bobinestyle.ass import AssDocument, Event, Style, parse_ass
+from bobinestyle.measure import centring_margin
 from bobinestyle.roles import DIALOGUE_ROLES, Role, ScriptReport, analyze
 from bobinestyle.scale import screen_scale
 
@@ -52,6 +53,7 @@ class StyleResult:
     report: ScriptReport
     restyled: list[tuple[str, Role]]
     warnings: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
 
 def _fmt(value: float) -> str:
@@ -181,6 +183,8 @@ def apply_house_style(text: str, video_size: tuple[int, int] | None) -> StyleRes
             if any(event.margins):
                 lines[event.line_index] = _event_line(event, ratio_x, ratio_y)
 
+    centred = _centre_dash_blocks(doc, lines, by_name, play_res[0], x, y)
+
     if not doc.scaled_border_and_shadow and any(_BORDER_TAG_RE.search(e.text) for e in doc.events):
         warnings.append(
             "ScaledBorderAndShadow passe à yes : les contours et ombres fixés dans les lignes changent d'épaisseur"
@@ -191,4 +195,34 @@ def apply_house_style(text: str, video_size: tuple[int, int] | None) -> StyleRes
         _set_info(lines, doc, "PlayResY", str(play_res[1]))
     if not restyled:
         warnings.append("aucun style de dialogue : seuls les en-têtes ont été modifiés")
-    return StyleResult("\n".join(lines) + "\n", play_res, changed, report, restyled, warnings)
+    notes = [f"{centred} réplique(s) à tirets centrée(s) par leur marge"] if centred else []
+    return StyleResult("\n".join(lines) + "\n", play_res, changed, report, restyled, warnings, notes)
+
+
+_DASH_ROLES = (Role.DASHES, Role.DASHES_ITALIC)
+_PLACED_RE = re.compile(r"\\(?:pos|move)\s*\(|\\an[1-9]")
+
+
+def _centre_dash_blocks(doc: AssDocument, lines: list[str], by_name: dict, grid_width: int, x: float, y: float) -> int:
+    """Give dash-dialogue lines that have no MarginL of their own the one
+    that centres their block, as Crunchyroll does by hand: the dash style
+    is left-aligned, so without it the block would hug the left edge.
+    Returns how many lines were centred."""
+    count = 0
+    for event in doc.events:
+        report = by_name.get(event.style)
+        if event.kind != "Dialogue" or not report or report.role not in _DASH_ROLES:
+            continue
+        if event.margins[0] or _PLACED_RE.search(event.text):
+            continue
+        plain = [p for p in re.sub(r"\{[^}]*\}", "", event.text).replace("\\n", "\\N").split("\\N") if p.strip()]
+        if not plain:
+            continue
+        italic = report.role is Role.DASHES_ITALIC
+        # Measured in vertical script units (the font size's), MarginL is horizontal.
+        margin = centring_margin(plain, FONT, FONT_SIZE * y, italic, grid_width * y / x, MARGIN_SIDE * y) * x / y
+        fields = dict(event.fields)
+        fields["marginl"] = f"{round(margin):04d}"
+        lines[event.line_index] = f"{event.kind}: " + ",".join(fields.values())
+        count += 1
+    return count

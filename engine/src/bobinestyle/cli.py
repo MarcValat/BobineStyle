@@ -122,6 +122,8 @@ def style(file: str, track: int, output: str | None) -> None:
     click.echo(f"PlayRes {w}x{h} {'(remplacé)' if result.play_res_changed else '(conservé)'}")
     for name, role in result.restyled:
         click.echo(f"  {name:<24} -> {role.label}")
+    for note in result.notes:
+        click.echo(note)
     for warning in result.warnings:
         click.echo(f"⚠ {warning}")
     click.echo(f"Écrit : {out}")

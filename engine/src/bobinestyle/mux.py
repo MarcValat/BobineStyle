@@ -114,7 +114,7 @@ def plan(path: str) -> MuxPlan:
             track.text = result.text
             track.dialogue_lines = result.report.dialogue_lines
             track.notes += [f"{name} : {role.label}" for name, role in result.restyled]
-            track.notes += result.warnings
+            track.notes += result.notes + result.warnings
             needed_fonts |= fonts_used(parse_ass(result.text))
         elif fmt == "srt":
             cues = parse_srt(extract_subtitle_text(path, track.stream.index, track.stream.codec))
