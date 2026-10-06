@@ -57,8 +57,17 @@ _ITALIC_RE = re.compile(r"\\i([01])(?!\d)")
 _BLOCK_RE = re.compile(r"\{[^}]*\}")
 _DASH_RE = re.compile(r"^\s*[-–—]")
 
-# A style is dialogue when at least this share of its lines is.
+# A style is dialogue when at least this share of its lines is...
 DIALOGUE_SHARE = 0.5
+# ...or when it carries a real part of the script's dialogue (Crunchyroll
+# typesets signs with Default: an opening full of them can outnumber its
+# lines in a short file). Never when its name says typesetting.
+DIALOGUE_MIN_LINES = 3
+DIALOGUE_MIN_SHARE_OF_SCRIPT = 0.1
+_TYPESET_NAME_RE = re.compile(
+    r"sign|panneau|\btit(?:le|re)|\bop\b|\bed\b|opening|ending|kara|song|chant|credit|générique|note|insert|logo",
+    re.IGNORECASE,
+)
 # A secondary style whose lines mostly run over the main one's: overlap.
 OVERLAP_SHARE = 0.6
 # Extra side margin (in % of the script width) that marks a "margins" style.
@@ -142,25 +151,34 @@ def analyze(doc: AssDocument) -> ScriptReport:
             by_style.setdefault(event.style, []).append(event)
 
     reports: list[StyleReport] = []
-    dialogue: dict[str, list[Event]] = {}
+    plain_by_style: dict[str, list[Event]] = {}
     for style in doc.styles:
         if doc.style(style.name) is not style:
             continue  # shadowed by a later style of the same name
         events = by_style.get(style.name, [])
         plain = [e for e in events if is_dialogue_line(e)]
-        report = StyleReport(
-            style, Role.UNUSED, len(events), len(plain), sum(is_positioned(e) for e in events)
-        )
-        if events and len(plain) >= DIALOGUE_SHARE * len(events):
+        plain_by_style[style.name] = plain
+        reports.append(StyleReport(style, Role.UNUSED, len(events), len(plain), sum(is_positioned(e) for e in events)))
+
+    total_plain = sum(r.dialogue_lines for r in reports)
+    dialogue: dict[str, list[Event]] = {}
+    for report in reports:
+        name, plain = report.style.name, plain_by_style[report.style.name]
+        mostly = report.lines > 0 and len(plain) >= DIALOGUE_SHARE * report.lines
+        carries = len(plain) >= max(DIALOGUE_MIN_LINES, DIALOGUE_MIN_SHARE_OF_SCRIPT * total_plain)
+        if (mostly or carries) and not _TYPESET_NAME_RE.search(name):
             report.role = Role.DIALOGUE
-            dialogue[style.name] = plain
-        elif events:
+            dialogue[name] = plain
+            if not mostly:
+                report.reasons.append(f"{report.lines - len(plain)} lignes de typo aussi")
+        elif report.lines:
             report.role = Role.TYPESETTING
-            report.reasons.append(f"{len(events) - len(plain)}/{len(events)} lignes de typo")
-        reports.append(report)
+            report.reasons.append(f"{report.lines - len(plain)}/{report.lines} lignes de typo")
 
     if dialogue:
-        main_name = max(dialogue, key=lambda n: len(dialogue[n]))
+        # The main style is upright: italic ones keep their italic role.
+        upright = [n for n in dialogue if not _effective_italic(doc.style(n), dialogue[n])] or list(dialogue)
+        main_name = max(upright, key=lambda n: len(dialogue[n]))
         main_style = doc.style(main_name)
         width = (doc.play_res or (384, 288))[0]
         for report in reports:
@@ -168,7 +186,7 @@ def analyze(doc: AssDocument) -> ScriptReport:
                 continue
             lines = dialogue[report.style.name]
             if report.style.name == main_name:
-                report.reasons.append("style principal")
+                report.reasons.insert(0, "style principal")
             _refine(report, lines, main_style, dialogue[main_name], width)
     positioned = sum(is_positioned(e) for e in doc.events if e.kind == "Dialogue")
     return ScriptReport(doc.play_res, doc.scaled_border_and_shadow, positioned, reports)
@@ -187,7 +205,7 @@ def _refine(report: StyleReport, lines: list[Event], main: Style, main_lines: li
     elif dashes * 2 > len(lines) and not is_main:
         report.role = Role.DASHES_ITALIC if italic else Role.DASHES
         report.reasons.append(f"{dashes}/{len(lines)} répliques à tirets")
-    elif italic and not main.italic:
+    elif italic:
         report.role = Role.ITALIC
         report.reasons.append("italique")
     elif not is_main and (share := _overlap_share(lines, main_lines)) >= OVERLAP_SHARE:

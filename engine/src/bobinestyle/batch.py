@@ -39,8 +39,9 @@ class FileResult:
 
 
 def find_videos(folder: Path, recursive: bool, output_dir: Path) -> list[Path]:
-    """MKV files of ``folder`` in name order, leaving out the output folder
-    and unfinished ``.part.mkv`` files."""
+    """MKV files of ``folder`` in name order, leaving out the output folder,
+    any ``Output`` folder below (where the app writes, next to each season's
+    files) and unfinished ``.part.mkv`` files."""
     pattern = "**/*.mkv" if recursive else "*.mkv"
     output_dir = output_dir.resolve()
     found = []
@@ -48,6 +49,8 @@ def find_videos(folder: Path, recursive: bool, output_dir: Path) -> list[Path]:
         if not path.is_file() or path.name.endswith(".part.mkv"):
             continue
         if path.resolve().is_relative_to(output_dir):
+            continue
+        if any(part.lower() == OUTPUT_DIR.lower() for part in path.relative_to(folder).parts[:-1]):
             continue
         found.append(path)
     return found

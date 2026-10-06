@@ -1,0 +1,117 @@
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { fileName, type FileItem } from "./shared";
+
+/** One row per file: its French tracks, the fonts it gets, where it stands. */
+export default function FileTable({
+  files,
+  selected,
+  running,
+  force,
+  onSelect,
+  onRemove,
+}: {
+  files: FileItem[];
+  selected: string | null;
+  running: boolean;
+  force: boolean;
+  onSelect: (path: string) => void;
+  onRemove: (path: string) => void;
+}) {
+  return (
+    <table className="file-table">
+      <thead>
+        <tr>
+          <th>Fichier</th>
+          <th>Sous-titres français</th>
+          <th>Polices jointes</th>
+          <th>État</th>
+          <th />
+        </tr>
+      </thead>
+      <tbody>
+        {files.map((f) => (
+          <tr
+            key={f.path}
+            className={`${f.path === selected ? "selected" : ""} ${f.status === "no_french" ? "dim" : ""}`}
+            onClick={() => onSelect(f.path)}
+          >
+            <td className="file" title={f.path}>
+              {fileName(f.path)}
+            </td>
+            <td>{frenchSummary(f)}</td>
+            <td>{f.plan ? (f.plan.fonts.length > 0 ? f.plan.fonts.length : "—") : ""}</td>
+            <td>
+              <StatusCell file={f} force={force} />
+            </td>
+            <td className="actions-cell">
+              {!running && (
+                <button
+                  className="icon"
+                  title="Retirer de la liste"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(f.path);
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function frenchSummary(file: FileItem): string {
+  const french = file.plan?.tracks.filter((t) => t.french) ?? [];
+  if (!file.plan) return "";
+  if (french.length === 0) return "—";
+  return french.map((t) => (t.kind === "forced" ? "forcés" : "complets") + (t.action === "convert" ? " (SRT)" : "")).join(" + ");
+}
+
+function StatusCell({ file, force }: { file: FileItem; force: boolean }) {
+  switch (file.status) {
+    case "planning":
+      return <span className="muted">Lecture…</span>;
+    case "no_french":
+      return <span className="muted">Rien à faire</span>;
+    case "plan_error":
+    case "error":
+      return (
+        <span className="error-text" title={file.error}>
+          {file.status === "error" ? "Échec" : "Illisible"}
+        </span>
+      );
+    case "queued":
+      return <span className="muted">En attente</span>;
+    case "running":
+      return (
+        <div className="progress" title={`${Math.round((file.progress ?? 0) * 100)} %`}>
+          <div className="progress-bar" style={{ width: `${(file.progress ?? 0) * 100}%` }} />
+        </div>
+      );
+    case "done":
+      return (
+        <span className="done-cell">
+          <span className="success-text">Terminé</span>
+          {file.output && (
+            <button
+              className="link"
+              onClick={(e) => {
+                e.stopPropagation();
+                revealItemInDir(file.output!.path);
+              }}
+            >
+              Afficher
+            </button>
+          )}
+        </span>
+      );
+    case "cancelled":
+      return <span className="muted">Annulé</span>;
+    default:
+      return file.output?.exists && !force ? <span className="tag">Déjà traité</span> : <span>Prêt</span>;
+  }
+}
