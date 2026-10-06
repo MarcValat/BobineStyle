@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import click
 
@@ -15,6 +16,7 @@ from bobinestyle.ffmpeg_backend import (
 )
 from bobinestyle.roles import Role, ScriptReport, analyze
 from bobinestyle.scale import screen_scale
+from bobinestyle.style import apply_house_style
 
 
 def _fail(message: str) -> None:
@@ -101,6 +103,39 @@ def inspect(file: str, track: int | None) -> None:
             click.echo(f"  SRT, {count} répliques : sera converti en ASS au style maison")
             continue
         _echo_report(analyze(parse_ass(text)))
+
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--track", "-t", type=int, required=True, help="Numéro de la piste ASS (@N de probe).")
+@click.option("--output", "-o", type=click.Path(dir_okay=False), help="Fichier .ass écrit (à côté du MKV par défaut).")
+def style(file: str, track: int, output: str | None) -> None:
+    """Écrit une piste ASS au style maison, adapté à la vidéo."""
+    try:
+        streams = probe_streams(file)
+    except FFmpegError as exc:
+        _fail(str(exc))
+    sub = next((s for s in subtitle_streams(streams) if s.index == track), None)
+    if sub is None:
+        _fail(f"pas de piste de sous-titres @{track}")
+    if TEXT_FORMATS.get(sub.codec) != "ass":
+        _fail(f"la piste @{track} n'est pas en ASS ({sub.codec})")
+    video = main_video(streams)
+    size = video.display_size if video else None
+    try:
+        result = apply_house_style(extract_subtitle_text(file, track, sub.codec), size)
+    except FFmpegError as exc:
+        _fail(str(exc))
+
+    out = Path(output) if output else Path(file).with_suffix(f".{track}.bobine.ass")
+    out.write_text(result.text, encoding="utf-8-sig")
+    w, h = result.play_res
+    click.echo(f"PlayRes {w}x{h} {'(remplacé)' if result.play_res_changed else '(conservé)'}")
+    for name, role in result.restyled:
+        click.echo(f"  {name:<24} -> {ROLE_LABELS[role]}")
+    for warning in result.warnings:
+        click.echo(f"⚠ {warning}")
+    click.echo(f"Écrit : {out}")
 
 
 def _echo_report(report: ScriptReport) -> None:
