@@ -70,6 +70,15 @@ def test_rerun_skips_done_files_and_ignores_the_output(series: Path):
     assert forced["S01/E01.mkv"] is Status.DONE
 
 
+def test_output_folders_of_seasons_are_skipped(series: Path, tmp_path: Path):
+    """The app writes next to each file (S01/Output): scanning the series
+    again must not pick those up."""
+    (series / "S01" / "Output").mkdir()
+    (series / "S01" / "Output" / "E01.mkv").write_bytes(b"")
+    found = find_videos(series, True, tmp_path / "elsewhere")
+    assert "S01/Output/E01.mkv" not in [p.relative_to(series).as_posix() for p in found]
+
+
 def test_plan_only_writes_nothing(series: Path, tmp_path: Path):
     out = tmp_path / "ailleurs"
     results = run_batch(series / "S01", output_dir=out, plan_only=True)

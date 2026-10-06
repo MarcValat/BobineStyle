@@ -73,20 +73,26 @@ class OutputsRequest(BaseModel):
     folder: str | None = None
 
 
+class OutputModel(BaseModel):
+    path: str
+    exists: bool
+
+
 @app.post("/outputs")
-def outputs(req: OutputsRequest) -> dict[str, list[str]]:
+def outputs(req: OutputsRequest) -> dict[str, list[OutputModel]]:
     """Where each file goes: ``Output/<name>`` next to it, or ``folder/<name>``
     (``folder/<its folder>/<name>`` when two sources share a name, as
-    episodes of different seasons do)."""
+    episodes of different seasons do), and whether something is there."""
     if req.folder is None:
-        return {"paths": [str(default_output(s)) for s in req.sources]}
-    names = [Path(s).name.lower() for s in req.sources]
-    paths = []
-    for source, name in zip(req.sources, names):
-        path = Path(source)
-        shared = names.count(name) > 1
-        paths.append(str(Path(req.folder) / path.parent.name / path.name if shared else Path(req.folder) / path.name))
-    return {"paths": paths}
+        paths = [default_output(s) for s in req.sources]
+    else:
+        names = [Path(s).name.lower() for s in req.sources]
+        paths = []
+        for source, name in zip(req.sources, names):
+            path = Path(source)
+            shared = names.count(name) > 1
+            paths.append(Path(req.folder) / path.parent.name / path.name if shared else Path(req.folder) / path.name)
+    return {"outputs": [OutputModel(path=str(p), exists=p.exists()) for p in paths]}
 
 
 @app.get("/exists")

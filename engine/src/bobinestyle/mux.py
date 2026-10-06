@@ -137,7 +137,7 @@ def plan(path: str) -> MuxPlan:
             if not track.french and track.stream.default:
                 track.notes.append("n'est plus la piste par défaut")
 
-    fonts, present, missing = _plan_fonts(path, needed_fonts)
+    fonts, present, missing = _plan_fonts(path, needed_fonts) if french else ([], [], [])
     if missing:
         warnings.append(f"polices introuvables sur ce PC, non jointes : {', '.join(sorted(missing))}")
     return MuxPlan(path, size, streams, tracks, fonts, present, missing, audio, warnings)

@@ -145,3 +145,22 @@ def test_extract_ass_from_mkv(tmp_path: Path):
     assert [s.name for s in doc.styles] == [s.name for s in parse_ass(FANSUB).styles]
     assert len(doc.events) == len(parse_ass(FANSUB).events)
     assert _roles(extract_subtitle_text(str(mkv), 0, "ass")) == _roles(FANSUB)
+
+
+def test_default_full_of_signs_still_carries_the_dialogue():
+    """An opening full of signs typeset with Default (Crunchyroll) must not
+    make Italique the main style and cost it its italic."""
+    text = _script(
+        [_style("Default"), _style("Italique", italic=1), _style("Signs")],
+        [_line(t, "Default", "{\pos(10,10)\fs20}PANNEAU", "Sign") for t in range(0, 40)]
+        + [_line(t, "Default", "Réplique") for t in range(41, 45)]
+        + [_line(t, "Italique", "Pensée") for t in range(46, 56)]
+        + [_line(t, "Signs", "Texte sans balise") for t in range(0, 6)],
+    )
+    roles = _roles(text)
+    assert roles == {"Default": Role.DIALOGUE, "Italique": Role.ITALIC, "Signs": Role.TYPESETTING}
+
+
+def test_italic_only_dialogue_stays_italic():
+    text = _script([_style("Pensées", italic=1)], [_line(t, "Pensées", "Hmm") for t in range(0, 20, 2)])
+    assert _roles(text) == {"Pensées": Role.ITALIC}

@@ -40,10 +40,15 @@ def test_expand_folders_and_files(series: Path):  # noqa: F811
 
 def test_outputs(series: Path, tmp_path: Path):  # noqa: F811
     sources = [str(series / "S01" / "E01.mkv"), str(series / "S01" / "E02.mkv"), str(series / "S02" / "E01.mkv")]
-    default = client.post("/outputs", json={"sources": sources}).json()["paths"]
-    assert default[0] == str(series / "S01" / "Output" / "E01.mkv")
-    folder = client.post("/outputs", json={"sources": sources, "folder": str(tmp_path)}).json()["paths"]
-    assert folder == [str(tmp_path / "S01" / "E01.mkv"), str(tmp_path / "E02.mkv"), str(tmp_path / "S02" / "E01.mkv")]
+    default = client.post("/outputs", json={"sources": sources}).json()["outputs"]
+    assert default[0] == {"path": str(series / "S01" / "Output" / "E01.mkv"), "exists": False}
+    (tmp_path / "E02.mkv").write_bytes(b"")
+    folder = client.post("/outputs", json={"sources": sources, "folder": str(tmp_path)}).json()["outputs"]
+    assert [(o["path"], o["exists"]) for o in folder] == [
+        (str(tmp_path / "S01" / "E01.mkv"), False),
+        (str(tmp_path / "E02.mkv"), True),
+        (str(tmp_path / "S02" / "E01.mkv"), False),
+    ]
 
 
 def test_plan(mkv: Path):  # noqa: F811
