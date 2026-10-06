@@ -18,7 +18,12 @@ export default function PlanDetail({ file }: { file: FileItem }) {
       </div>
       {file.status === "planning" && <p className="muted">Lecture des pistes…</p>}
       {file.error && <p className="error">{file.error}</p>}
-      {plan && (
+      {plan && !plan.tracks.some((t) => t.french) && (
+        <p className="muted">
+          {plan.tracks.length === 0 ? "Aucune piste de sous-titres" : "Aucune piste de sous-titres française"} : ce fichier ne sera pas traité.
+        </p>
+      )}
+      {plan && plan.tracks.some((t) => t.french) && (
         <>
           <p>
             {plan.audio ? (
@@ -31,25 +36,21 @@ export default function PlanDetail({ file }: { file: FileItem }) {
               <>Pas d'audio : sous-titres complets par défaut.</>
             )}
           </p>
-          {plan.tracks.length === 0 ? (
-            <p className="muted">Aucune piste de sous-titres.</p>
-          ) : (
-            <table className="tracks">
-              <thead>
-                <tr>
-                  <th>Piste</th>
-                  <th>Devient</th>
-                  <th>Marquage</th>
-                  <th>Traitement</th>
-                </tr>
-              </thead>
-              <tbody>
-                {plan.tracks.map((t) => (
-                  <TrackRow key={t.index} track={t} />
-                ))}
-              </tbody>
-            </table>
-          )}
+          <table className="tracks">
+            <thead>
+              <tr>
+                <th>Piste</th>
+                <th>Devient</th>
+                <th>Marquage</th>
+                <th>Traitement</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plan.tracks.map((t) => (
+                <TrackRow key={t.index} track={t} />
+              ))}
+            </tbody>
+          </table>
           <Fonts attached={plan.fonts} present={plan.fonts_present} />
           {plan.warnings.map((w) => (
             <p key={w} className="warning">
@@ -58,7 +59,7 @@ export default function PlanDetail({ file }: { file: FileItem }) {
           ))}
         </>
       )}
-      {file.output && (
+      {file.output && file.status !== "no_french" && (
         <div className="output-line">
           <span className="muted">Sortie</span>
           <span className="path" title={file.output.path}>
