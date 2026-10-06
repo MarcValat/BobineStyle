@@ -5,6 +5,7 @@ import { retryEngine, useEngineStatus } from "./engine";
 import { DropOverlay, useFileDrop } from "./FileDrop";
 import FileTable from "./FileTable";
 import PlanDetail from "./PlanDetail";
+import { UpdateButton } from "./UpdateButton";
 import { errorMessage, type FileItem, isRunnable, limiter } from "./shared";
 
 // Files read, and remuxed, at the same time: more only makes the disk seek.
@@ -151,7 +152,10 @@ export default function App() {
         <aside className="sidebar">
           <EngineBadge />
           <section className="card">
-            <h2>Fichiers</h2>
+            <div className="card-head">
+              <h2>Fichiers</h2>
+              <UpdateButton />
+            </div>
             <p className="hint">Des MKV, ou un dossier entier (une saison, une série). Tu peux aussi les glisser dans la fenêtre.</p>
             <button className="primary wide" onClick={pickFiles} disabled={running}>
               Ajouter des MKV…

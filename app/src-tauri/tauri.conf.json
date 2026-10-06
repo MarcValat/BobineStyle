@@ -51,6 +51,15 @@
       }
     },
     "shortDescription": "Applique le style maison aux sous-titres français des MKV",
-    "publisher": "Marc Valat"
+    "publisher": "Marc Valat",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZGNUQ5Njg3Nzc0OTRDQTcKUldTblRFbDNoNVpkYjFSNlRITjVob2NvRkhydGJhMG02MWRBZTk1cmExcWRWdGppaHpzUEt4ajYK",
+      "endpoints": [
+        "https://github.com/MarcValat/BobineStyle/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
