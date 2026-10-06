@@ -32,6 +32,7 @@ from bobinestyle.ffmpeg_backend import (
 )
 from bobinestyle.fonts import MIMETYPES, FontFace, faces_for, font_faces, fonts_used, system_fonts
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
+from bobinestyle.srt import parse_srt, srt_to_ass
 from bobinestyle.style import FONT, apply_house_style
 
 FRENCH_CODES = {"fre", "fra", "fr"}
@@ -92,10 +93,6 @@ def default_audio(streams: list[StreamInfo]) -> StreamInfo | None:
     return next((s for s in audio if s.default), audio[0] if audio else None)
 
 
-def _srt_cues(text: str) -> int:
-    return sum(1 for line in text.splitlines() if "-->" in line)
-
-
 def plan(path: str) -> MuxPlan:
     info = ffmpeg_info(path)
     streams = parse_streams(info)
@@ -119,8 +116,10 @@ def plan(path: str) -> MuxPlan:
             track.notes += result.warnings
             needed_fonts |= fonts_used(parse_ass(result.text))
         elif fmt == "srt":
-            track.dialogue_lines = _srt_cues(extract_subtitle_text(path, track.stream.index, track.stream.codec))
-            track.notes.append("SRT copié tel quel (conversion en ASS à venir)")
+            cues = parse_srt(extract_subtitle_text(path, track.stream.index, track.stream.codec))
+            track.text = srt_to_ass(cues, size)
+            track.dialogue_lines = len(cues)
+            track.notes.append("SRT converti en ASS")
         else:
             track.notes.append("format image : copié tel quel")
 
@@ -273,8 +272,10 @@ def verify(p: MuxPlan, output: str) -> None:
     """The output has every source stream, in order and with the same
     codec, plus the new fonts; same duration; Dolby Vision kept."""
     source_info, output_info = ffmpeg_info(p.source), ffmpeg_info(output)
+    converted = {t.stream.global_index for t in p.tracks if t.text is not None}
     source, result = p.streams, parse_streams(output_info)
-    expected = [(s.kind, s.codec) for s in source] + [("Attachment", None)] * len(p.fonts)
+    expected = [(s.kind, "ass" if s.index in converted else s.codec) for s in source]
+    expected += [("Attachment", None)] * len(p.fonts)
     got = [(s.kind, s.codec) for s in result]
     if len(got) != len(expected):
         raise MuxError(f"{len(got)} flux dans la sortie au lieu de {len(expected)}")

@@ -10,6 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "click>=8.4.2",
     "imageio-ffmpeg>=0.6.0",
+    "pillow>=11",
 ]
 
 [project.scripts]
