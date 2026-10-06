@@ -49,3 +49,10 @@ def text_width(text: str, family: str, size: float, bold: bool, italic: bool) ->
         return len(text) * size * _FALLBACK_ADVANCE
     font, height = _font(face.path)
     return font.getlength(text) * size / height
+
+
+def centring_margin(lines: list[str], family: str, size: float, italic: bool, grid_width: float, minimum: float) -> int:
+    """MarginL that centres a left-aligned block of ``lines`` (dash
+    dialogue: the dashes stay aligned, the block sits in the middle)."""
+    widest = max(text_width(line, family, size, True, italic) for line in lines)
+    return round(max(minimum, (grid_width - widest) / 2))

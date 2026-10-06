@@ -36,19 +36,20 @@ def resolve_ffmpeg() -> str:
 
 # How often a running ffmpeg checks for a cancellation.
 _CANCEL_POLL_S = 0.2
-_OUT_TIME_RE = re.compile(rb"^out_time_us=(\d+)")
+_TOTAL_SIZE_RE = re.compile(rb"^total_size=(\d+)")
 
 
-def _run(cmd: list[str], cwd: Path | None = None, on_time: Callable[[float], None] | None = None) -> subprocess.CompletedProcess[bytes]:
+def _run(cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None] | None = None) -> subprocess.CompletedProcess[bytes]:
     """Run ffmpeg, killing it (raising ``Cancelled``) as soon as the job
-    running it is cancelled. With ``on_time``, ffmpeg reports how far it
-    got (seconds of output written) as it goes."""
+    running it is cancelled. With ``on_size``, ffmpeg reports how far it
+    got (bytes written) as it goes: its output time is often unknown
+    ("N/A") when copying with -copyts and attachments."""
     event = current_cancel_event()
-    if event is None and on_time is None:
+    if event is None and on_size is None:
         return subprocess.run(cmd, cwd=cwd, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
     if event is not None and event.is_set():
         raise Cancelled()
-    if on_time is not None:
+    if on_size is not None:
         cmd = [cmd[0], "-progress", "pipe:1", "-nostats", *cmd[1:]]
     with subprocess.Popen(
         cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_SUBPROCESS_FLAGS
@@ -59,8 +60,8 @@ def _run(cmd: list[str], cwd: Path | None = None, on_time: Callable[[float], Non
         def read_out() -> None:
             for line in proc.stdout:
                 out.append(line)
-                if on_time and (match := _OUT_TIME_RE.match(line)):
-                    on_time(int(match.group(1)) / 1e6)
+                if on_size and (match := _TOTAL_SIZE_RE.match(line)):
+                    on_size(int(match.group(1)))
 
         readers = [
             threading.Thread(target=read_out, daemon=True),
@@ -82,8 +83,8 @@ def _run(cmd: list[str], cwd: Path | None = None, on_time: Callable[[float], Non
     return subprocess.CompletedProcess(cmd, proc.returncode, b"".join(out), b"".join(err))
 
 
-def run_checked(cmd: list[str], on_time: Callable[[float], None] | None = None) -> bytes:
-    proc = _run(cmd, on_time=on_time)
+def run_checked(cmd: list[str], on_size: Callable[[int], None] | None = None) -> bytes:
+    proc = _run(cmd, on_size=on_size)
     if proc.returncode != 0:
         raise FFmpegError(f"ffmpeg failed:\n{' '.join(cmd)}\n{proc.stderr.decode(errors='replace')}")
     return proc.stdout

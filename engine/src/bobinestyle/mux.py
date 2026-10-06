@@ -114,7 +114,7 @@ def plan(path: str) -> MuxPlan:
             track.text = result.text
             track.dialogue_lines = result.report.dialogue_lines
             track.notes += [f"{name} : {role.label}" for name, role in result.restyled]
-            track.notes += result.warnings
+            track.notes += result.notes + result.warnings
             needed_fonts |= fonts_used(parse_ass(result.text))
         elif fmt == "srt":
             cues = parse_srt(extract_subtitle_text(path, track.stream.index, track.stream.codec))
@@ -251,7 +251,7 @@ def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None
                     *maps, *attach, "-map_metadata", "0", "-map_chapters", "0", "-metadata", "title=",
                     *tags, "-c", "copy", "-f", "matroska", str(partial),
                 ],
-                on_time=_progress_reporter(p.source, progress),
+                on_size=_progress_reporter(p.source, progress),
             )
         verify(p, str(partial))
         os.replace(partial, output)
@@ -262,11 +262,13 @@ def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None
     return output
 
 
-def _progress_reporter(source: str, progress: Callable[[float], None] | None) -> Callable[[float], None] | None:
-    duration = container_duration(ffmpeg_info(source)) if progress else None
-    if not progress or not duration:
+def _progress_reporter(source: str, progress: Callable[[float], None] | None) -> Callable[[int], None] | None:
+    """Bytes written as a share of the source: a remux copies it whole (the
+    fonts added are a rounding error)."""
+    size = Path(source).stat().st_size if progress else 0
+    if not progress or not size:
         return None
-    return lambda seconds: progress(seconds / duration)
+    return lambda written: progress(min(written / size, 1.0))
 
 
 def _unique(name: str, taken: set[str]) -> str:

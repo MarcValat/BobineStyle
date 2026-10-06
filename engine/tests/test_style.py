@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import pytest
+
 from bobinestyle.ass import parse_ass
 from bobinestyle.style import apply_house_style
 from test_roles import FANSUB, _line, _script, _style
+from test_srt import HAS_TREBUCHET
 
 
 def _styles(text: str) -> dict[str, dict[str, str]]:
@@ -34,8 +37,11 @@ def test_positioned_script_keeps_its_grid():
     assert (default["marginl"], default["marginr"], default["marginv"], default["bold"]) == ("2", "2", "25", "-1")
     assert styles["Italique"]["italic"] == "-1"
     assert (styles["TiretsDefault"]["alignment"], styles["TiretsDefault"]["marginl"]) == ("1", "22")
-    # Events are untouched, byte for byte.
-    assert _events(result.text) == _events(CRUNCHYROLL)
+    # Events are untouched, byte for byte, but the dash line without a
+    # MarginL of its own: it gets the one centring its block.
+    before, after = _events(CRUNCHYROLL), _events(result.text)
+    assert [a for a, b in zip(after, before) if a != b] == [after[11]]
+    assert after[11].startswith("Dialogue: 0,0:00:40.00,0:00:42.00,TiretsDefault,,0") and ",0,0,,- Oui" in after[11]
 
 
 def test_unpinned_script_takes_the_video_grid():
@@ -109,3 +115,24 @@ def test_ssa_alignment_written_back():
     result = apply_house_style(text, (640, 480))
     up = parse_ass(result.text).style("Up")
     assert up.fields["alignment"] == "6" and up.alignment == 8
+
+
+@pytest.mark.skipif(not HAS_TREBUCHET, reason="Trebuchet MS not installed")
+def test_dash_blocks_are_centred_unless_already_placed():
+    """Crunchyroll centres this line by hand with MarginL 226 in a 640x360
+    grid: the same is computed for a line that has none. A line with its
+    own margin, or placed by a tag, is left alone."""
+    dashes = [
+        "Dialogue: 0,0:00:40.00,0:00:42.00,TiretsDefault,,0000,0000,0000,,– On contre-attaque !\\N– Montez !",
+        "Dialogue: 0,0:00:43.00,0:00:45.00,TiretsDefault,,0150,0000,0000,,– Déjà placée\\N– Oui",
+        "Dialogue: 0,0:00:46.00,0:00:48.00,TiretsDefault,,0000,0000,0000,,{\\an8}– En haut\\N– Oui",
+    ]
+    text = _script(
+        [_style("Default"), _style("TiretsDefault", align=1)],
+        [_line(t, "Default", "Réplique") for t in range(0, 30, 3)] + [_line(50, "Default", "{\\pos(10,10)}X")] + dashes,
+        info="PlayResX: 640\nPlayResY: 360\n",
+    )
+    result = apply_house_style(text, (1920, 1080))
+    margins = {e.text[:12]: e.fields["marginl"] for e in parse_ass(result.text).events if e.style == "TiretsDefault"}
+    assert list(margins.values()) == ["0226", "0150", "0000"]
+

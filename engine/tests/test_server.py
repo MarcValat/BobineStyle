@@ -90,7 +90,7 @@ def test_cancel_kills_a_running_ffmpeg():
         started.set()
         run_checked(
             [resolve_ffmpeg(), "-hide_banner", "-f", "lavfi", "-i", "testsrc=s=640x360:r=25:d=600", "-f", "null", "-"],
-            on_time=lambda t: progress(t / 600),
+            on_size=lambda written: progress(0.0),
         )
         return "finished"
 

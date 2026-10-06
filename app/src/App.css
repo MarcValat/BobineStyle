@@ -423,3 +423,16 @@ table.tracks tr:has(+ tr.notes) td {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.card-head h2 {
+  margin: 0;
+}
+.card-head .update-button {
+  height: 30px;
+}
