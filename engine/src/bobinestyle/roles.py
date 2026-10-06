@@ -29,6 +29,23 @@ class Role(StrEnum):
     TYPESETTING = "typesetting"
     UNUSED = "unused"
 
+    @property
+    def label(self) -> str:
+        return _LABELS[self]
+
+
+_LABELS = {
+    Role.DIALOGUE: "dialogue",
+    Role.ITALIC: "italique",
+    Role.TOP: "haut",
+    Role.TOP_ITALIC: "haut italique",
+    Role.DASHES: "tirets",
+    Role.DASHES_ITALIC: "tirets italique",
+    Role.OVERLAP: "overlap",
+    Role.MARGINS: "marges",
+    Role.TYPESETTING: "typo (inchangé)",
+    Role.UNUSED: "inutilisé",
+}
 
 DIALOGUE_ROLES = frozenset(Role) - {Role.TYPESETTING, Role.UNUSED}
 

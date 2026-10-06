@@ -14,7 +14,8 @@ from bobinestyle.ffmpeg_backend import (
     probe_streams,
     subtitle_streams,
 )
-from bobinestyle.roles import Role, ScriptReport, analyze
+from bobinestyle.mux import FRENCH_CODES, MuxError, default_output, mux, plan
+from bobinestyle.roles import ScriptReport, analyze
 from bobinestyle.scale import screen_scale
 from bobinestyle.style import apply_house_style
 
@@ -59,20 +60,6 @@ def probe(file: str) -> None:
     fonts = [s.filename or "?" for s in streams if s.kind == "Attachment"]
     if fonts:
         click.echo(f"Pièces jointes : {', '.join(fonts)}")
-
-
-ROLE_LABELS = {
-    Role.DIALOGUE: "dialogue",
-    Role.ITALIC: "italique",
-    Role.TOP: "haut",
-    Role.TOP_ITALIC: "haut italique",
-    Role.DASHES: "tirets",
-    Role.DASHES_ITALIC: "tirets italique",
-    Role.OVERLAP: "overlap",
-    Role.MARGINS: "marges",
-    Role.TYPESETTING: "typo (inchangé)",
-    Role.UNUSED: "inutilisé",
-}
 
 
 @main.command()
@@ -132,10 +119,55 @@ def style(file: str, track: int, output: str | None) -> None:
     w, h = result.play_res
     click.echo(f"PlayRes {w}x{h} {'(remplacé)' if result.play_res_changed else '(conservé)'}")
     for name, role in result.restyled:
-        click.echo(f"  {name:<24} -> {ROLE_LABELS[role]}")
+        click.echo(f"  {name:<24} -> {role.label}")
     for warning in result.warnings:
         click.echo(f"⚠ {warning}")
     click.echo(f"Écrit : {out}")
+
+
+@main.command("mux")
+@click.argument("file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--output", "-o", type=click.Path(dir_okay=False), help="MKV écrit (Output/<même nom> par défaut).")
+@click.option("--plan", "plan_only", is_flag=True, help="Affiche ce qui serait fait, sans rien écrire.")
+def mux_command(file: str, output: str | None, plan_only: bool) -> None:
+    """Remuxe le MKV avec ses sous-titres français au style maison et les polices jointes."""
+    try:
+        p = plan(file)
+    except FFmpegError as exc:
+        _fail(str(exc))
+    if p.audio is None:
+        click.echo("Pas d'audio : sous-titres complets par défaut")
+    else:
+        lang = p.audio.language or "langue inconnue"
+        choice = "forcés" if p.audio.language in FRENCH_CODES else "complets"
+        click.echo(f"Audio par défaut : {lang} {p.audio.title or ''}".rstrip() + f"  ->  sous-titres {choice} par défaut")
+    for t in p.tracks:
+        s = t.stream
+        if t.french:
+            flags = " ".join(f for f, on in (("défaut", t.default), ("forcés", t.forced)) if on)
+            action = "restylé" if t.text is not None else "copié"
+            lines = f"{t.dialogue_lines} répliques" if t.dialogue_lines is not None else "?"
+            click.echo(f"@{s.index}  {s.title or '-'}  ->  {t.title}  {flags}  ({action}, {lines})")
+        else:
+            click.echo(f"@{s.index}  {s.language or '-'} {s.title or ''}  ->  inchangé".rstrip())
+        for note in t.notes:
+            click.echo(f"      {note}")
+    if p.fonts:
+        click.echo(f"Polices jointes : {', '.join(f.path.name for f in p.fonts)}")
+    if p.fonts_present:
+        click.echo(f"Déjà dans le MKV : {', '.join(p.fonts_present)}")
+    for warning in p.warnings:
+        click.echo(f"⚠ {warning}")
+    if not any(t.french for t in p.tracks):
+        _fail("aucune piste de sous-titres française")
+    if plan_only:
+        return
+    target = Path(output) if output else default_output(file)
+    try:
+        written = mux(p, target)
+    except MuxError as exc:
+        _fail(str(exc))
+    click.echo(f"Écrit et vérifié : {written}")
 
 
 def _echo_report(report: ScriptReport) -> None:
@@ -150,6 +182,6 @@ def _echo_report(report: ScriptReport) -> None:
     click.echo(f"  {'Style':<24} {'Rôle':<16} {'Lignes':>6} {'Dialogue':>8}  Détails")
     for r in report.styles:
         click.echo(
-            f"  {r.style.name[:24]:<24} {ROLE_LABELS[r.role]:<16} {r.lines:>6} {r.dialogue_lines:>8}  "
+            f"  {r.style.name[:24]:<24} {r.role.label:<16} {r.lines:>6} {r.dialogue_lines:>8}  "
             f"{', '.join(r.reasons)}".rstrip()
         )

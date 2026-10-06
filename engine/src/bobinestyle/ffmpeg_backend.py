@@ -31,6 +31,13 @@ def resolve_ffmpeg() -> str:
         raise FFmpegError("ffmpeg not found: neither on PATH nor through the imageio-ffmpeg package.") from exc
 
 
+def run_checked(cmd: list[str]) -> bytes:
+    proc = subprocess.run(cmd, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
+    if proc.returncode != 0:
+        raise FFmpegError(f"ffmpeg failed:\n{' '.join(cmd)}\n{proc.stderr.decode(errors='replace')}")
+    return proc.stdout
+
+
 def ffmpeg_info(path: str) -> str:
     """``ffmpeg -i path``'s report."""
     if not Path(path).is_file():
@@ -86,6 +93,27 @@ def parse_streams(info: str) -> list[StreamInfo]:
 
 def probe_streams(path: str) -> list[StreamInfo]:
     return parse_streams(ffmpeg_info(path))
+
+
+_DURATION_RE = re.compile(r"Duration:\s*(?P<h>\d+):(?P<m>\d+):(?P<s>\d+(?:\.\d+)?)")
+
+
+def container_duration(info: str) -> float | None:
+    match = _DURATION_RE.search(info)
+    return int(match["h"]) * 3600 + int(match["m"]) * 60 + float(match["s"]) if match else None
+
+
+def dump_attachments(path: str, folder: Path) -> list[Path]:
+    """Write ``path``'s attachments (fonts) into ``folder``."""
+    before = set(folder.iterdir())
+    # ffmpeg dumps before complaining that there is no output: ignore that.
+    subprocess.run(
+        [resolve_ffmpeg(), "-hide_banner", "-loglevel", "quiet", "-y", "-dump_attachment:t", "", "-i", str(Path(path).resolve())],
+        cwd=folder,
+        capture_output=True,
+        creationflags=_SUBPROCESS_FLAGS,
+    )
+    return sorted(set(folder.iterdir()) - before)
 
 
 TEXT_FORMATS = {"ass": "ass", "ssa": "ass", "subrip": "srt", "srt": "srt"}
