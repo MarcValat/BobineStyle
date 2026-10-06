@@ -14,7 +14,7 @@ from bobinestyle.ffmpeg_backend import (
     probe_streams,
     subtitle_streams,
 )
-from bobinestyle.mux import MuxError, default_output, mux, plan
+from bobinestyle.mux import FRENCH_CODES, MuxError, default_output, mux, plan
 from bobinestyle.roles import ScriptReport, analyze
 from bobinestyle.scale import screen_scale
 from bobinestyle.style import apply_house_style
@@ -135,6 +135,12 @@ def mux_command(file: str, output: str | None, plan_only: bool) -> None:
         p = plan(file)
     except FFmpegError as exc:
         _fail(str(exc))
+    if p.audio is None:
+        click.echo("Pas d'audio : sous-titres complets par défaut")
+    else:
+        lang = p.audio.language or "langue inconnue"
+        choice = "forcés" if p.audio.language in FRENCH_CODES else "complets"
+        click.echo(f"Audio par défaut : {lang} {p.audio.title or ''}".rstrip() + f"  ->  sous-titres {choice} par défaut")
     for t in p.tracks:
         s = t.stream
         if t.french:

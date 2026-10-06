@@ -73,6 +73,7 @@ class MuxPlan:
     fonts: list[FontFace]
     fonts_present: list[str]
     fonts_missing: list[str]
+    audio: StreamInfo | None = None
     warnings: list[str] = field(default_factory=list)
 
 
@@ -82,6 +83,13 @@ def _is_french(stream: SubtitleStreamInfo, any_french: bool) -> bool:
     if stream.language is None:
         return bool(stream.title and _FRENCH_TITLE_RE.search(stream.title)) or not any_french
     return False
+
+
+def default_audio(streams: list[StreamInfo]) -> StreamInfo | None:
+    """The audio track players start with: the first flagged default, else
+    the first one."""
+    audio = [s for s in streams if s.kind == "Audio"]
+    return next((s for s in audio if s.default), audio[0] if audio else None)
 
 
 def _srt_cues(text: str) -> int:
@@ -122,7 +130,8 @@ def plan(path: str) -> MuxPlan:
         s = track.stream
         few = track.dialogue_lines is not None and track.dialogue_lines < FORCED_SHARE * most
         track.kind = "forced" if s.forced or (s.title and _FORCED_TITLE_RE.search(s.title)) or few else "full"
-    _name_tracks(french)
+    audio = default_audio(streams)
+    _name_tracks(french, audio_french=bool(audio and audio.language in FRENCH_CODES))
     if any(t.default for t in french):
         for track in tracks:
             if not track.french and track.stream.default:
@@ -131,13 +140,16 @@ def plan(path: str) -> MuxPlan:
     fonts, present, missing = _plan_fonts(path, needed_fonts)
     if missing:
         warnings.append(f"polices introuvables sur ce PC, non jointes : {', '.join(sorted(missing))}")
-    return MuxPlan(path, size, streams, tracks, fonts, present, missing, warnings)
+    return MuxPlan(path, size, streams, tracks, fonts, present, missing, audio, warnings)
 
 
-def _name_tracks(french: list[TrackPlan]) -> None:
-    """Full tracks: "Français", no flag. Forced: "Français (forcé)",
-    default and forced, so players show it with French audio. Same-kind
-    tracks keep their old title to stay distinguishable."""
+def _name_tracks(french: list[TrackPlan], audio_french: bool) -> None:
+    """Full tracks: "Français". Forced: "Français (forcé)", flagged forced.
+    Same-kind tracks keep their old title to stay distinguishable.
+
+    The default subtitle follows the default audio: with French audio, the
+    forced track (only the foreign parts need translating); otherwise the
+    full one (falling back on the other kind when one is missing)."""
     for kind, title in (("full", FULL_TITLE), ("forced", FORCED_TITLE)):
         group = [t for t in french if t.kind == kind]
         for n, track in enumerate(group):
@@ -146,7 +158,16 @@ def _name_tracks(french: list[TrackPlan]) -> None:
                 track.title = f"{title} – {track.stream.title}"
             elif n:
                 track.title = f"{title} {n + 1}"
-            track.default = track.forced = kind == "forced" and n == 0
+            track.forced = kind == "forced"
+            track.default = False
+    full = [t for t in french if t.kind == "full"]
+    forced = [t for t in french if t.kind == "forced"]
+    if audio_french:
+        chosen = forced[:1]
+    else:
+        chosen = (full or forced)[:1]
+    for track in chosen:
+        track.default = True
 
 
 def _plan_fonts(path: str, needed: set[str]) -> tuple[list[FontFace], list[str], list[str]]:

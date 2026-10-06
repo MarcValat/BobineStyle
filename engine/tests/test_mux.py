@@ -11,7 +11,19 @@ from bobinestyle.ass import parse_ass
 from bobinestyle.ffmpeg_backend import extract_subtitle_text, probe_streams, resolve_ffmpeg, subtitle_streams
 from bobinestyle.fonts import faces_for, system_fonts
 from bobinestyle.models import SubtitleStreamInfo
-from bobinestyle.mux import FORCED_TITLE, FULL_TITLE, MuxError, _is_french, mux, plan, verify
+from bobinestyle.models import StreamInfo
+from bobinestyle.mux import (
+    FORCED_TITLE,
+    FULL_TITLE,
+    MuxError,
+    TrackPlan,
+    _is_french,
+    _name_tracks,
+    default_audio,
+    mux,
+    plan,
+    verify,
+)
 from test_roles import _line, _script, _style
 
 FULL = _script(
@@ -70,8 +82,9 @@ def test_plan_labels_french_tracks(mkv: Path):
     p = plan(str(mkv))
     english, full, signs = p.tracks
     assert not english.french
-    assert (full.kind, full.title, full.default, full.forced) == ("full", FULL_TITLE, False, False)
-    assert (signs.kind, signs.title, signs.default, signs.forced) == ("forced", FORCED_TITLE, True, True)
+    # No French audio: the full track is the default one.
+    assert (full.kind, full.title, full.default, full.forced) == ("full", FULL_TITLE, True, False)
+    assert (signs.kind, signs.title, signs.default, signs.forced) == ("forced", FORCED_TITLE, False, True)
     assert "impact" in {n for f in p.fonts for n in f.families} or "impact" in p.fonts_missing
 
 
@@ -82,9 +95,9 @@ def test_mux_restyles_keeps_timing_and_attaches_fonts(mkv: Path, tmp_path: Path)
 
     subs = subtitle_streams(probe_streams(str(out)))
     assert [(s.language, s.title, s.default, s.forced) for s in subs] == [
-        ("eng", None, False, False),  # no longer default: the forced French track is
-        ("fre", FULL_TITLE, False, False),
-        ("fre", FORCED_TITLE, True, True),
+        ("eng", None, False, False),  # no longer default: a French track is
+        ("fre", FULL_TITLE, True, False),
+        ("fre", FORCED_TITLE, False, True),
     ]
     restyled = parse_ass(extract_subtitle_text(str(out), 1, "ass"))
     assert restyled.style("Default").fontname == "Trebuchet MS"
@@ -135,3 +148,41 @@ def test_french_detection():
     assert not _is_french(_sub(None), True)  # undetermined beside a real French track
     assert _is_french(_sub(None), False)  # the only candidate, as the old script assumed
 
+
+
+def _tracks(*kinds: str) -> list[TrackPlan]:
+    tracks = [TrackPlan(_sub("fre"), True) for _ in kinds]
+    for track, kind in zip(tracks, kinds):
+        track.kind = kind
+    return tracks
+
+
+def _defaults(tracks: list[TrackPlan]) -> list[tuple[str, bool, bool]]:
+    return [(t.kind, t.default, t.forced) for t in tracks]
+
+
+def test_default_subtitle_follows_default_audio():
+    tracks = _tracks("full", "forced")
+    _name_tracks(tracks, audio_french=False)
+    assert _defaults(tracks) == [("full", True, False), ("forced", False, True)]
+    _name_tracks(tracks, audio_french=True)
+    assert _defaults(tracks) == [("full", False, False), ("forced", True, True)]
+
+
+def test_default_subtitle_when_a_kind_is_missing():
+    only_full = _tracks("full")
+    _name_tracks(only_full, audio_french=True)
+    assert _defaults(only_full) == [("full", False, False)]  # French audio needs no full subtitles
+    only_forced = _tracks("forced")
+    _name_tracks(only_forced, audio_french=False)
+    assert _defaults(only_forced) == [("forced", True, True)]
+
+
+def _audio(index: int, language: str | None, default: bool) -> StreamInfo:
+    return StreamInfo(index, "Audio", "aac", language, None, default, False)
+
+
+def test_default_audio():
+    assert default_audio([_audio(1, "jpn", False), _audio(2, "fre", True)]).language == "fre"
+    assert default_audio([_audio(1, "jpn", False), _audio(2, "fre", False)]).language == "jpn"
+    assert default_audio([]) is None
