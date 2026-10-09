@@ -1,17 +1,18 @@
 import { useSyncExternalStore } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 
-/** `bobinestyle serve`'s default port: where a plain browser on the dev
- * server finds the engine. The app itself starts it on a free port. */
-const DEV_PORT = 8758;
+/** The engine's usual port, `bobinestyle serve`'s default: where a plain
+ * browser on the dev server finds it. The app starts it there when it's
+ * free, on another free port otherwise. */
+const DEFAULT_PORT = 8758;
 
 let engineUrl: string | null = null;
 
-/** The engine sidecar's local address: the app picks a free port at
- * startup (see src-tauri/src/lib.rs) so nothing else can hold it. */
+/** The engine sidecar's local address, asked once to the app (see
+ * src-tauri/src/lib.rs's free_port). */
 export async function getEngineUrl(): Promise<string> {
   if (engineUrl === null) {
-    const port = isTauri() ? await invoke<number>("engine_port") : DEV_PORT;
+    const port = isTauri() ? await invoke<number>("engine_port") : DEFAULT_PORT;
     engineUrl = `http://127.0.0.1:${port}`;
   }
   return engineUrl;

@@ -6,24 +6,29 @@ use tauri::path::BaseDirectory;
 use tauri::Manager;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
-/// The engine's port: a free one picked at startup, so the engine never
-/// collides with another program (or a stale engine) holding a fixed port.
-/// The frontend asks for it through `engine_port`.
+/// The engine's port, picked at startup: the usual one when it's free,
+/// another free one otherwise, so the engine never collides with another
+/// program (or a stale engine) holding it. The frontend asks for it through
+/// `engine_port`.
 struct EnginePort(u16);
 
-/// A port nothing listens on right now: the OS hands out a free one for
-/// port 0, released at once for the engine to take. Falls back on the dev
-/// port should that ever fail.
+/// The usual port when nothing listens on it, else one the OS hands out
+/// (port 0); either is released at once for the engine to take. Falls back
+/// on the usual port should both fail.
 fn free_port() -> u16 {
+    if std::net::TcpListener::bind(("127.0.0.1", DEFAULT_PORT)).is_ok() {
+        return DEFAULT_PORT;
+    }
     std::net::TcpListener::bind("127.0.0.1:0")
         .and_then(|listener| listener.local_addr())
         .map(|addr| addr.port())
-        .unwrap_or(DEV_PORT)
+        .unwrap_or(DEFAULT_PORT)
 }
 
-/// What `bobinestyle serve` listens on by default: a plain browser pointed
-/// at the dev server (no Tauri, no `engine_port`) finds the engine there.
-const DEV_PORT: u16 = 8758;
+/// The engine's usual port, also `bobinestyle serve`'s default: a plain
+/// browser pointed at the dev server (no Tauri, no `engine_port`) finds the
+/// engine there.
+const DEFAULT_PORT: u16 = 8758;
 
 #[tauri::command]
 fn engine_port(port: tauri::State<EnginePort>) -> u16 {
@@ -232,6 +237,16 @@ fn spawn_sidecar(app: &tauri::AppHandle, port: u16) -> Option<Child> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // First, so a second launch stops here: one copy of the app at a
+        // time (two would mean two engines and two windows on the same
+        // files). It brings the open window back to the front instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
@@ -241,13 +256,15 @@ pub fn run() {
         // here, once restored, so it doesn't flash at the default size first.
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
+            // Known before the window shows: the frontend asks for it at once.
+            let port = free_port();
+            app.manage(EnginePort(port));
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
             }
             let handle = app.handle().clone();
             #[cfg(windows)]
             let job = KillOnCloseJob::new();
-            let port = free_port();
             let child = spawn_sidecar(&handle, port);
             #[cfg(windows)]
             {
@@ -264,7 +281,6 @@ pub fn run() {
                 app.manage(SidecarJob(job));
             }
             app.manage(SidecarState(Mutex::new(child)));
-            app.manage(EnginePort(port));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![engine_port, stop_sidecar])

@@ -2,7 +2,7 @@
 
 L'application de [Bobine Style](../README.fr.md) (Tauri v2 + React/TypeScript) : ajouter des MKV ou des dossiers, voir ce qui sera fait à chaque fichier, appliquer le style.
 
-Elle ne contient aucune logique de style ni de remux : elle pilote le moteur Python (`../engine/`), lancé au démarrage comme processus séparé exposant une API HTTP + WebSocket locale sur `127.0.0.1`. Le port est choisi libre à chaque lancement (`src-tauri/src/lib.rs`, commande `engine_port`) : aucun conflit possible avec Bobine Audio, Bobine Subs ou un autre programme.
+Elle ne contient aucune logique de style ni de remux : elle pilote le moteur Python (`../engine/`), lancé au démarrage comme processus séparé exposant une API HTTP + WebSocket locale sur `127.0.0.1`. Le moteur prend son port habituel (8758) quand il est libre, un autre port libre sinon (`src-tauri/src/lib.rs`, commande `engine_port`) : aucun conflit possible avec Bobine Audio, Bobine Subs ou un autre programme. Une seule copie de l'application tourne à la fois : la relancer ramène la fenêtre ouverte.
 
 ## Prérequis
 
