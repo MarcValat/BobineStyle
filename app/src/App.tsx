@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { cancelJob, expandPaths, JobCancelled, type MuxResult, planFile, planOutputs, runJob, startMux } from "./api";
+import { DropZone } from "./DropZone";
 import { EngineStatusBadge } from "./EngineStatus";
 import { DropOverlay, useFileDrop } from "./FileDrop";
 import FileTable from "./FileTable";
@@ -247,7 +248,9 @@ export default function App() {
               </button>
             </div>
             {files.length === 0 ? (
-              <p className="placeholder">Ajoute des MKV, ou glisse des fichiers ou des dossiers dans la fenêtre.</p>
+              <DropZone title="Glisse des fichiers ou des dossiers ici" onClick={pickFiles}>
+                Des MKV, ou le dossier d'une saison ou d'une série : leurs sous-titres français prendront le style maison.
+              </DropZone>
             ) : (
               <div className="file-table-wrap list-scroll">
                 <FileTable
