@@ -22,11 +22,16 @@ export interface FileItem {
   error?: string;
 }
 
-/** Can be (re)processed: French subtitles, not busy, and its output free
- * unless `force`. */
+/** Has French subtitles, is read and not busy: can be processed, again too
+ * (the row's "Refaire ce fichier"). */
+export function isRedoable(file: FileItem): boolean {
+  return ["ready", "done", "error", "cancelled"].includes(file.status) && file.output !== undefined;
+}
+
+/** To process with the main button: redoable, its output free unless
+ * `force`. */
 export function isRunnable(file: FileItem, force: boolean): boolean {
-  const planned = ["ready", "done", "error", "cancelled"].includes(file.status);
-  return planned && file.output !== undefined && (force || !file.output.exists);
+  return isRedoable(file) && (force || !file.output!.exists);
 }
 
 export function fileName(path: string): string {

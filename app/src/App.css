@@ -916,11 +916,76 @@ button:focus-visible {
 }
 
 .col-state {
-  width: 10em;
+  width: 11em;
 }
 
-.col-remove {
-  width: 3em;
+/* The row's icon buttons (open the folder, take it off), each centered in
+   a narrow column of its own (as Bobine Subs' folder column). */
+.col-icon {
+  width: 3.2em;
+}
+
+.file-table-wrap td.icon-cell {
+  padding: 0.45em 0.3em;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* A row's state on the left, its "Refaire" on the right. */
+.state-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.state-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A small button holding an icon only (Refaire, the folder, ✕). */
+.icon-small-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25em 0.45em;
+}
+
+.icon-small-button svg {
+  width: 1.05em;
+  height: 1.05em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Where each file stands, a bar at its row's left (as Bobine Audio's
+   analyzed tracks and Bobine Subs' batch): running blue, waiting or being
+   read pale blue, ready pale green, done green, failed red. */
+.file-table-wrap tbody tr > td:first-child {
+  box-shadow: inset 3px 0 0 var(--row-state, transparent);
+}
+
+.row-state-running {
+  --row-state: var(--accent);
+}
+
+.row-state-queued {
+  --row-state: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.row-state-ready {
+  --row-state: color-mix(in srgb, var(--success) 45%, transparent);
+}
+
+.row-state-done {
+  --row-state: var(--success);
+}
+
+.row-state-error {
+  --row-state: var(--error);
 }
 
 .file-name-cell {
@@ -932,14 +997,6 @@ button:focus-visible {
 
 tr.dim td {
   color: var(--text-muted);
-}
-
-.remove-cell {
-  text-align: right;
-}
-
-.remove-cell button {
-  padding: 0.1em 0.5em;
 }
 
 /* A file's progress while it's written. */
@@ -954,12 +1011,6 @@ tr.dim td {
   height: 100%;
   background: var(--accent);
   transition: width 0.2s;
-}
-
-.done-cell {
-  display: flex;
-  gap: 0.6em;
-  align-items: baseline;
 }
 
 .success-text {
