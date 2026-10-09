@@ -1,0 +1,53 @@
+/* Every dialog (see Dialog.tsx): a dimmed backdrop over the whole app, the
+   window centered on it. */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2em;
+  box-sizing: border-box;
+  background: var(--backdrop);
+}
+
+/* The segment editor uses nearly the whole window. */
+.dialog-overlay-fill {
+  padding: 1em;
+}
+
+.dialog-panel {
+  width: 100%;
+  min-width: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 1.2em 1.4em;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popup);
+}
+
+/* Fitted rather than scrolled: its own content decides what scrolls. */
+.dialog-panel-fill {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  margin-bottom: 0.8em;
+}
+
+.dialog-header h2 {
+  margin: 0 auto 0 0;
+  font-size: 1.1em;
+}

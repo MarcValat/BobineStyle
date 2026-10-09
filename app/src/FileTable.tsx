@@ -18,12 +18,19 @@ export default function FileTable({
   onRemove: (path: string) => void;
 }) {
   return (
-    <table className="file-table">
+    <table>
+      <colgroup>
+        <col />
+        <col className="col-french" />
+        <col className="col-fonts" />
+        <col className="col-state" />
+        <col className="col-remove" />
+      </colgroup>
       <thead>
         <tr>
           <th>Fichier</th>
           <th>Sous-titres français</th>
-          <th>Polices jointes</th>
+          <th>Polices</th>
           <th>État</th>
           <th />
         </tr>
@@ -35,7 +42,7 @@ export default function FileTable({
             className={`${f.path === selected ? "selected" : ""} ${f.status === "no_french" ? "dim" : ""}`}
             onClick={() => onSelect(f.path)}
           >
-            <td className="file" title={f.path}>
+            <td className="file-name-cell" title={f.path}>
               {fileName(f.path)}
             </td>
             <td>{frenchSummary(f)}</td>
@@ -43,10 +50,10 @@ export default function FileTable({
             <td>
               <StatusCell file={f} force={force} />
             </td>
-            <td className="actions-cell">
+            <td className="remove-cell">
               {!running && (
                 <button
-                  className="icon"
+                  className="small-button"
                   title="Retirer de la liste"
                   onClick={(e) => {
                     e.stopPropagation();

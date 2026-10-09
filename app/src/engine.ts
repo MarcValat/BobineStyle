@@ -12,7 +12,10 @@ let engineUrl: string | null = null;
  * src-tauri/src/lib.rs's free_port). */
 export async function getEngineUrl(): Promise<string> {
   if (engineUrl === null) {
-    const port = isTauri() ? await invoke<number>("engine_port") : DEFAULT_PORT;
+    // Dev only, in a plain browser: `?enginePort=` points at an engine other
+    // than the usual one (automated checks run their own beside `tauri dev`).
+    const devPort = import.meta.env.DEV ? Number(new URLSearchParams(location.search).get("enginePort")) : 0;
+    const port = isTauri() ? await invoke<number>("engine_port") : devPort || DEFAULT_PORT;
     engineUrl = `http://127.0.0.1:${port}`;
   }
   return engineUrl;

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { cancelJob, expandPaths, JobCancelled, type MuxResult, planFile, planOutputs, runJob, startMux } from "./api";
-import { retryEngine, useEngineStatus } from "./engine";
+import { EngineStatusBadge } from "./EngineStatus";
 import { DropOverlay, useFileDrop } from "./FileDrop";
 import FileTable from "./FileTable";
+import { InfoTip } from "./InfoTip";
+import { OptionsButton } from "./Options";
 import PlanDetail from "./PlanDetail";
 import { UpdateButton } from "./UpdateButton";
 import { errorMessage, type FileItem, isRunnable, limiter } from "./shared";
@@ -145,90 +147,104 @@ export default function App() {
   }, [add]);
 
   const current = files.find((f) => f.path === selected) ?? files[0];
+  const queued = files.filter((f) => f.status === "queued" || f.status === "running").length;
 
   return (
-    <div className="app">
-      <div className="layout">
-        <aside className="sidebar">
-          <EngineBadge />
-          <section className="card">
-            <div className="card-head">
-              <h2>Fichiers</h2>
-              <UpdateButton />
-            </div>
-            <p className="hint">Des MKV, ou un dossier entier (une saison, une série). Tu peux aussi les glisser dans la fenêtre.</p>
-            <button className="primary wide" onClick={pickFiles} disabled={running}>
+    <div className="container">
+      <div className="top-bar">
+        <div className="top-actions">
+          <EngineStatusBadge />
+          <UpdateButton />
+          <OptionsButton />
+        </div>
+      </div>
+      <main className="app-main">
+        <div className="left-column">
+          <section className="panel">
+            <h2>Ajouter</h2>
+            <button className="primary-button file-open-button" onClick={pickFiles} disabled={running}>
               Ajouter des MKV…
             </button>
-            <button className="wide" onClick={pickFolders} disabled={running}>
+            <button className="file-open-button" onClick={pickFolders} disabled={running}>
               Ajouter un dossier…
             </button>
-            <label className="checkbox">
+            <label className="check-row">
               <input type="checkbox" checked={recursive} onChange={(e) => setRecursive(e.target.checked)} />
               Inclure les sous-dossiers (saisons)
             </label>
             {addError && <p className="error">{addError}</p>}
-            {files.length > 0 && (
-              <div className="list-info">
-                <span className="muted">
-                  {files.length} fichier{files.length > 1 ? "s" : ""}
-                </span>
-                {!running && (
-                  <button
-                    className="link"
-                    onClick={() => {
-                      setFiles([]);
-                      setSelected(null);
-                    }}
-                  >
-                    Vider la liste
-                  </button>
-                )}
-              </div>
-            )}
           </section>
 
-          <section className="card">
+          <section className="panel run-panel">
             <h2>Sortie</h2>
-            <div className="segmented">
-              <button className={folder === null ? "active" : ""} onClick={() => setFolder(null)} disabled={running}>
-                Output à côté
-              </button>
-              <button className={folder !== null ? "active" : ""} onClick={pickOutputFolder} disabled={running}>
-                Autre dossier
-              </button>
+            <div className="output-current">
+              {folder === null ? (
+                <>
+                  À côté des originaux, dans un dossier « Output »
+                  <InfoTip>Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais modifiés.</InfoTip>
+                </>
+              ) : (
+                <div className="file-path" title={folder}>
+                  {folder}
+                </div>
+              )}
             </div>
-            {folder === null ? (
-              <p className="hint">Dans un dossier « Output » à côté de chaque fichier, sous le même nom. Les originaux ne sont jamais modifiés.</p>
-            ) : (
-              <div className="file-name" title={folder}>
-                {folder}
-              </div>
-            )}
-            <label className="checkbox">
+            <div className="output-buttons">
+              <button className="small-button" onClick={pickOutputFolder} disabled={running}>
+                Choisir un dossier…
+              </button>
+              {folder !== null && (
+                <button className="small-button" onClick={() => setFolder(null)} disabled={running}>
+                  À côté des originaux
+                </button>
+              )}
+            </div>
+            <label className="check-row">
               <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} disabled={running} />
               Refaire les fichiers déjà traités
             </label>
+            <div className="export-box">
+              <p className="export-summary">
+                {files.length} fichier{files.length > 1 ? "s" : ""} · {runnable.length} à traiter
+                {finished > 0 && ` · ${finished} traité${finished > 1 ? "s" : ""}`}
+              </p>
+              {running ? (
+                <div className="export-running">
+                  <span className="export-running-label">
+                    Traitement… {finished} / {finished + queued}
+                  </span>
+                  <button className="export-cancel" onClick={cancel}>
+                    Annuler l'export
+                  </button>
+                </div>
+              ) : (
+                <button className="primary-button export-button" onClick={run} disabled={runnable.length === 0}>
+                  Appliquer le style{runnable.length > 0 ? ` (${runnable.length})` : ""}
+                </button>
+              )}
+            </div>
           </section>
+        </div>
 
-          <button className="primary wide big" onClick={run} disabled={running || runnable.length === 0}>
-            {running
-              ? `Traitement… (${finished} / ${finished + files.filter((f) => f.status === "queued" || f.status === "running").length})`
-              : `Appliquer le style${runnable.length > 0 ? ` (${runnable.length})` : ""}`}
-          </button>
-          {running && (
-            <button className="wide" onClick={cancel}>
-              Annuler
-            </button>
-          )}
-        </aside>
-
-        <main className="results">
-          {files.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="results-content">
-              <section className="card">
+        <div className="right-column">
+          <section className="panel files-panel">
+            <div className="panel-header">
+              <h2>Fichiers</h2>
+              <button
+                className="small-button"
+                disabled={running || files.length === 0}
+                onClick={() => {
+                  setFiles([]);
+                  setSelected(null);
+                }}
+              >
+                Tout retirer
+              </button>
+            </div>
+            {files.length === 0 ? (
+              <p className="placeholder">Ajoute des MKV, ou glisse des fichiers ou des dossiers dans la fenêtre.</p>
+            ) : (
+              <div className="file-table-wrap list-scroll">
                 <FileTable
                   files={files}
                   selected={current?.path ?? null}
@@ -237,47 +253,18 @@ export default function App() {
                   onSelect={setSelected}
                   onRemove={remove}
                 />
-              </section>
-              {current && <PlanDetail file={current} />}
-            </div>
-          )}
-        </main>
-      </div>
+              </div>
+            )}
+          </section>
+          {current && <PlanDetail file={current} />}
+        </div>
+      </main>
       <DropOverlay
         dragging={dragging}
         blocked={running ? "Attends la fin du traitement" : null}
         label="Ajouter à la liste"
         hint={recursive ? "Les dossiers sont parcourus avec leurs sous-dossiers" : undefined}
       />
-    </div>
-  );
-}
-
-function EngineBadge() {
-  const status = useEngineStatus();
-  if (status === "ready") return null;
-  return (
-    <span className={`engine-badge ${status}`}>
-      {status === "starting" ? (
-        "Démarrage du moteur…"
-      ) : (
-        <>
-          Moteur injoignable <button onClick={retryEngine}>Réessayer</button>
-        </>
-      )}
-    </span>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="placeholder">
-      <div className="placeholder-title">Ajoute des MKV pour commencer.</div>
-      <p>
-        Bobine Style applique le style maison (Trebuchet MS, contour et ombre) aux sous-titres français, adapté à la résolution de chaque
-        vidéo. Il nomme les pistes complètes et forcées, joint les polices, et laisse le reste du fichier intact.
-      </p>
-      <p className="muted">Les fichiers traités vont dans un dossier Output : les originaux ne sont jamais modifiés.</p>
     </div>
   );
 }
