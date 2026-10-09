@@ -2,7 +2,7 @@
 
 L'application de [Bobine Style](../README.fr.md) (Tauri v2 + React/TypeScript) : ajouter des MKV ou des dossiers, voir ce qui sera fait à chaque fichier, appliquer le style.
 
-Elle ne contient aucune logique de style ni de remux : elle pilote le moteur Python (`../engine/`), lancé au démarrage comme processus séparé exposant une API HTTP + WebSocket locale sur `127.0.0.1`. Le port est choisi libre à chaque lancement (`src-tauri/src/lib.rs`, commande `engine_port`) : aucun conflit possible avec SyncAudio, SyncSubtitles ou un autre programme.
+Elle ne contient aucune logique de style ni de remux : elle pilote le moteur Python (`../engine/`), lancé au démarrage comme processus séparé exposant une API HTTP + WebSocket locale sur `127.0.0.1`. Le port est choisi libre à chaque lancement (`src-tauri/src/lib.rs`, commande `engine_port`) : aucun conflit possible avec Bobine Audio, Bobine Subs ou un autre programme.
 
 ## Prérequis
 
@@ -33,7 +33,7 @@ Un build local n'est pas signé pour les mises à jour sans la clé : définir `
 
 ## Publier une release
 
-Le workflow `.github/workflows/release.yml` (repris de SyncSubtitles) :
+Le workflow `.github/workflows/release.yml` (repris de Bobine Subs) :
 
 - **sur un tag `vX.Y.Z`** : tests du moteur sous Windows et Linux, puis une release **brouillon** avec l'installateur `.exe`, le `.deb` et `latest.json` (mises à jour automatiques), signés ;
 - **lancé à la main** (Actions > Release > Run workflow, sur n'importe quelle branche) : construit les deux installateurs sans rien publier, en artefacts du run.

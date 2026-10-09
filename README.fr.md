@@ -33,7 +33,7 @@ Les sous-titres français arrivent dans tous les styles : un Arial fin d'un côt
 
 Bobine Style fait tout ça en une passe, pour un fichier ou une série entière, et nomme les pistes pour que Plex (ou n'importe quel lecteur) choisisse la bonne tout seul.
 
-Il fait partie de **Bobine**, une petite suite d'outils pour vidéothèque, avec [SyncAudio](https://github.com/MarcValat/SyncAudio) et [SyncSubtitles](https://github.com/MarcValat/SyncSubtitles).
+Il fait partie de **Bobine**, une petite suite d'outils pour vidéothèque, avec [Bobine Audio](https://github.com/MarcValat/BobineAudio) et [Bobine Subs](https://github.com/MarcValat/BobineSubs).
 
 <img src="docs/screenshots/before-after.png" alt="Avant et après : des sous-titres en Arial fin deviennent du Trebuchet MS gras avec contour et ombre ; le panneau du haut reste tel quel ; une réplique à deux voix est centrée">
 

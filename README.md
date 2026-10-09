@@ -33,7 +33,7 @@ French subtitles come in every style: thin Arial from one source, a huge font fr
 
 Bobine Style does all of that in one pass, for a file or a whole series, and labels the tracks so that Plex (or any player) picks the right one on its own.
 
-It's part of **Bobine**, a small suite of tools for a video library, next to [SyncAudio](https://github.com/MarcValat/SyncAudio) and [SyncSubtitles](https://github.com/MarcValat/SyncSubtitles). The interface is in French.
+It's part of **Bobine**, a small suite of tools for a video library, next to [Bobine Audio](https://github.com/MarcValat/BobineAudio) and [Bobine Subs](https://github.com/MarcValat/BobineSubs). The interface is in French.
 
 <img src="docs/screenshots/before-after.png" alt="Before and after: thin Arial subtitles become bold Trebuchet MS with an outline and a shadow; the sign at the top is left as it was; a two-speaker line is centred">
 
