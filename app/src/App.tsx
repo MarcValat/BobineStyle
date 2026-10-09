@@ -184,7 +184,7 @@ export default function App() {
               className="pill-switch-wide"
               label="Où écrire les fichiers traités"
               options={[
-                ["next", "À côté des originaux"],
+                ["next", "À côté"],
                 ["folder", "Autre dossier"],
               ]}
               value={folder === null ? "next" : "folder"}
@@ -193,7 +193,7 @@ export default function App() {
             />
             {folder === null ? (
               <p className="output-current">
-                Dans un dossier « Output », sous le même nom
+                Dans un dossier « Output » à côté des originaux, sous le même nom
                 <InfoTip>Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais modifiés.</InfoTip>
               </p>
             ) : (
@@ -236,7 +236,13 @@ export default function App() {
         <div className="right-column">
           <section className="panel files-panel">
             <div className="panel-header">
-              <h2>Fichiers</h2>
+              <h2>
+                Fichiers{" "}
+                <InfoTip>
+                  Chaque MKV ajouté est lu : ses pistes de sous-titres françaises, ce qu'elles deviendront et les polices à joindre. Clique sur une ligne
+                  pour voir le détail en dessous, puis lance « Appliquer le style ».
+                </InfoTip>
+              </h2>
               <button
                 className="small-button"
                 disabled={running || files.length === 0}
