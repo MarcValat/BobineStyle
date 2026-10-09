@@ -88,4 +88,6 @@ Copyright © 2026 Marc Valat. Bobine Style est un logiciel libre, publié sous l
 
 L'installateur fournit aussi [FFmpeg](https://ffmpeg.org/) (une build [gyan.dev](https://www.gyan.dev/ffmpeg/builds/), via [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg)), que Bobine Style lance comme programme séparé. Cette build est aussi sous GPL v3 ; son code source est disponible auprès de FFmpeg et de gyan.dev.
 
-Aucune police n'est fournie : Trebuchet MS et les autres sont prises sur ton ordinateur et jointes à tes propres fichiers.
+L'interface utilise la police [Inter](https://rsms.me/inter/) (intégrée via [Fontsource](https://fontsource.org/fonts/inter)), sous [licence SIL Open Font License 1.1](https://openfontlicense.org/).
+
+Aucune police de sous-titres n'est fournie : Trebuchet MS et les autres sont prises sur ton ordinateur et jointes à tes propres fichiers.

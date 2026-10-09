@@ -100,7 +100,7 @@ Une piste de sous-titres d'une autre langue qui était par défaut ne l'est plus
 
 ## Les polices
 
-Bobine Style ne fournit aucune police : Trebuchet MS (une police Microsoft) ne peut pas être redistribuée. Les polices sont prises sur ton ordinateur et jointes à tes fichiers, ce qui permet aux sous-titres de s'afficher pareil partout :
+Bobine Style ne fournit aucune police de sous-titres : Trebuchet MS (une police Microsoft) ne peut pas être redistribuée. Les polices sont prises sur ton ordinateur et jointes à tes fichiers, ce qui permet aux sous-titres de s'afficher pareil partout :
 
 - les quatre fichiers de Trebuchet MS (normal, gras, italique, gras italique) ;
 - chaque police utilisée par les sous-titres français : celles de leurs styles et celles nommées dans les lignes (`\fn`), pour les panneaux.

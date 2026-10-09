@@ -2,6 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { engineReady } from "./engine";
+// Inter, bundled: the same text on Windows and Linux, no network needed.
+// Its italic too: font-synthesis is off, a slanted regular is never faked.
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter/wght-italic.css";
 import "./App.css";
 
 // Wait for the engine from the start: the UI is usable meanwhile.

@@ -100,7 +100,7 @@ A subtitle track in another language that was default isn't any more, so that pl
 
 ## Fonts
 
-Bobine Style ships no font: Trebuchet MS (a Microsoft font) can't be redistributed. Fonts are taken from your computer and attached to your files, which is what makes the subtitles look the same everywhere:
+Bobine Style ships no subtitle font: Trebuchet MS (a Microsoft font) can't be redistributed. Fonts are taken from your computer and attached to your files, which is what makes the subtitles look the same everywhere:
 
 - the four Trebuchet MS files (regular, bold, italic, bold italic);
 - every font the French subtitles use: their styles' and those named in the lines (`\fn`), for signs.
