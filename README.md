@@ -47,6 +47,7 @@ It's part of **Bobine**, a small suite of tools for a video library, next to [Bo
 - 📝 **SRT too**: French SRT files are converted to ASS in the same style (italics, `{\an8}`, dash lines…).
 - 🗂️ **A whole series in one pass**: drop a folder, its seasons are included; files already done are skipped.
 - 🛡️ **Nothing lost**: video, audio, other languages' subtitles and chapters are copied untouched, nothing is re-encoded, the original file is never changed, and each output is checked before it's kept.
+- 🖱️ **Drag and drop** files or whole folders, light or dark theme (or the system's), automatic updates.
 
 ## Install
 
