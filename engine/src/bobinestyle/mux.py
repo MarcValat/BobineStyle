@@ -32,6 +32,7 @@ from bobinestyle.ffmpeg_backend import (
     subtitle_streams,
 )
 from bobinestyle.fonts import MIMETYPES, FontFace, faces_for, font_faces, fonts_used, system_fonts
+from bobinestyle.matroska import MatroskaError, cluster_timestamps, out_of_order
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 from bobinestyle.srt import parse_srt, srt_to_ass
 from bobinestyle.style import FONT, apply_house_style
@@ -249,6 +250,12 @@ def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None
                 [
                     resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y", "-copyts", *inputs,
                     *maps, *attach, "-map_metadata", "0", "-map_chapters", "0", "-metadata", "title=",
+                    # Strict time order: by default ffmpeg stops waiting
+                    # for a stream once others are 10 s ahead, and the
+                    # sparse subtitles read from their own files then land
+                    # in clusters out of order (one at 3:19 before one at
+                    # 0:14). VLC skips those blocks: the lines never show.
+                    "-max_interleave_delta", "0",
                     *tags, "-c", "copy", "-f", "matroska", str(partial),
                 ],
                 on_size=_progress_reporter(p.source, progress),
@@ -283,7 +290,8 @@ def _unique(name: str, taken: set[str]) -> str:
 
 def verify(p: MuxPlan, output: str) -> None:
     """The output has every source stream, in order and with the same
-    codec, plus the new fonts; same duration; Dolby Vision kept."""
+    codec, plus the new fonts; same duration; Dolby Vision kept; its
+    clusters in time order."""
     source_info, output_info = ffmpeg_info(p.source), ffmpeg_info(output)
     converted = {t.stream.global_index for t in p.tracks if t.text is not None}
     source, result = p.streams, parse_streams(output_info)
@@ -300,3 +308,11 @@ def verify(p: MuxPlan, output: str) -> None:
         raise MuxError(f"durée {after} s au lieu de {before} s")
     if source_info.count("DOVI configuration") != output_info.count("DOVI configuration"):
         raise MuxError("les métadonnées Dolby Vision ont été perdues")
+    # Clusters in time order: VLC skips the blocks of one written too early
+    # (subtitles that never show), however well ffmpeg itself reads it.
+    try:
+        backwards = out_of_order(cluster_timestamps(output))
+    except (MatroskaError, OSError) as exc:
+        raise MuxError(f"fichier écrit illisible : {exc}") from exc
+    if backwards:
+        raise MuxError(f"{backwards} groupe(s) de blocs hors de l'ordre du temps : certains lecteurs n'afficheraient pas tout")
