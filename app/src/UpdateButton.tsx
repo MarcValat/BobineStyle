@@ -30,7 +30,7 @@ let checked: Promise<PendingUpdate | null> | null = null;
 const checkOnce = () => (checked ??= check());
 
 /**
- * From SyncAudio: asks GitHub Releases once at startup (tauri.conf.json's
+ * From Bobine Audio: asks GitHub Releases once at startup (tauri.conf.json's
  * plugins.updater.endpoints) and, when a newer signed build exists, shows
  * an icon whose menu installs it in place. Silent on failure (no network...):
  * an optional background check must never get in the way.

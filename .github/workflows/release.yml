@@ -66,7 +66,7 @@ jobs:
         # Draft: reviewed and published by hand once, not auto-public the
         # instant a build succeeds. Its id is read from the creation's own
         # answer: looked up in the list of releases right after, a new draft
-        # can be missing from it yet (seen in SyncAudio: its v1.4.0 builds then
+        # can be missing from it yet (seen in Bobine Audio, then SyncAudio: its v1.4.0 builds then
         # quietly published nothing).
         run: |
           id=$(gh api -X POST "repos/$GH_REPO/releases" -f tag_name="$TAG" -f name="Bobine Style $TAG" -F draft=true --jq .id)

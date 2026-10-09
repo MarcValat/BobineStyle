@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 100 100">
+<defs>
+<linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34363f"/><stop offset="1" stop-color="#121317"/></linearGradient>
+<linearGradient id="edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity=".1"/></linearGradient>
+<linearGradient id="main" gradientUnits="userSpaceOnUse" x1="22" y1="78" x2="78" y2="22"><stop offset="0" stop-color="#ff6a6a"/><stop offset=".55" stop-color="#ff9a4d"/><stop offset="1" stop-color="#ffd166"/></linearGradient>
+<linearGradient id="perf" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="90" y2="0"><stop offset="0" stop-color="#ff6a6a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd166" stop-opacity=".9"/></linearGradient>
+<radialGradient id="glow" cx=".5" cy=".52" r=".42"><stop offset="0" stop-color="#ff8a55" stop-opacity="0.36"/><stop offset="1" stop-color="#ff8a55" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="100" height="100" rx="22" fill="url(#tile)"/>
+<rect x="1.5" y="1.5" width="97" height="97" rx="20.5" fill="none" stroke="url(#edge)" stroke-width="3"/>
+<circle cx="50" cy="50" r="40" fill="url(#glow)"/>
+<g fill="url(#perf)"><rect x="13" y="7" width="10" height="7" rx="2"/><rect x="45" y="7" width="10" height="7" rx="2"/><rect x="77" y="7" width="10" height="7" rx="2"/><rect x="13" y="86" width="10" height="7" rx="2"/><rect x="45" y="86" width="10" height="7" rx="2"/><rect x="77" y="86" width="10" height="7" rx="2"/></g>
+<g fill="url(#main)" transform="translate(50 51) scale(1.12) translate(-50 -48)"><path transform="translate(29.398 58) scale(0.01758 -0.01758)" d="M1005 0 898 297H396L294 0H5L589 1485H703L1292 0ZM646 1037 470 496H822Z"/><path transform="translate(52.197 58) scale(0.01758 -0.01758)" d="M731 107Q697 51 612.5 15.5Q528 -20 436 -20Q263 -20 164.0 66.5Q65 153 65 312Q65 498 204.5 603.0Q344 708 601 708Q645 708 705 693Q705 882 466 882Q325 882 230 835L176 1029Q305 1091 483 1091Q728 1091 842.0 979.5Q956 868 956 557V328Q956 114 1042 59Q1011 5 973.0 -7.5Q935 -20 886 -20Q832 -20 789.0 20.0Q746 60 731 107ZM707 504Q643 517 611 517Q315 517 315 323Q315 179 482 179Q707 179 707 404Z"/></g><rect x="26" y="68" width="48" height="8" rx="4" fill="url(#main)"/>
+</svg>

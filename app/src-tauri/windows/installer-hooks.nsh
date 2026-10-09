@@ -1,5 +1,5 @@
 ; NSIS hooks wired in via bundle.windows.nsis.installerHooks (tauri.conf.json),
-; from SyncAudio.
+; from Bobine Audio.
 ;
 ; The installer's own "is the app running?" check only knows about the main
 ; exe, not the engine the app launches next to it. An engine left running (a

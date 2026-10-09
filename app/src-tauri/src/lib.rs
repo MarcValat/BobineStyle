@@ -116,7 +116,7 @@ struct SidecarJob(#[allow(dead_code)] Option<KillOnCloseJob>);
 /// Stop the engine ahead of an in-place update install: the updater
 /// replaces the app's own exe but knows nothing of the engine, which would
 /// keep its exe locked ("Error opening file for writing", seen in
-/// SyncAudio). The frontend calls this once the update is downloaded, right
+/// Bobine Audio). The frontend calls this once the update is downloaded, right
 /// before installing; the relaunch that follows starts a fresh engine.
 #[tauri::command]
 fn stop_sidecar(state: tauri::State<SidecarState>) {
