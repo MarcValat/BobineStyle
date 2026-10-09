@@ -25,19 +25,25 @@ This guide explains how to use Bobine Style and exactly what it does to a file. 
 
 ## Processing files
 
-1. **Add files** (*Fichiers*): *Ajouter des MKV…* for files, *Ajouter un dossier…* for a folder, or drop either on the window. With *Inclure les sous-dossiers (saisons)* ticked, a series folder brings all its seasons. `Output` folders and unfinished files are never picked up.
+1. **Add files** (*Ajouter* panel, on the left): *Ajouter des MKV…* for files, *Ajouter un dossier…* for a folder, *+ Ajouter* at the top of the list, or drop either on the window (the empty list is a drop zone). With *Inclure les sous-dossiers (saisons)* ticked, a series folder brings all its seasons. `Output` folders and unfinished files are never picked up.
 2. **Choose where the results go** (*Sortie*):
-   - *Output à côté*: an `Output` folder next to each file, under the same name;
-   - *Autre dossier*: one folder for everything (two episodes with the same name from different seasons go into their season's subfolder).
+   - *À côté* (next to them): an `Output` folder next to each file, under the same name;
+   - *Autre dossier* (another folder): one folder for everything, picked then (*Changer…* to pick another); two episodes with the same name from different seasons go into their season's subfolder.
 
    *Refaire les fichiers déjà traités* processes again files whose result already exists; otherwise they're marked *Déjà traité* (already done) and skipped, so an interrupted series can simply be started again.
-3. **Apply** (*Appliquer le style*, with the number of files to process): two files at a time, each with its progress bar. *Annuler* stops: the file being written is deleted, the originals are untouched either way.
+3. **Apply** (*Appliquer le style*, bottom left, with the number of files to process): two files at a time, each with its progress bar. *Annuler l'export* stops: the file being written is deleted, the originals are untouched either way.
 
-States in the list: *Lecture…* (reading the tracks), *Prêt* (ready), *Rien à faire* (no French subtitles), *Illisible* (unreadable file), *En attente* (queued), *Terminé* with *Afficher* to open its folder, *Échec* (hover for the reason), *Annulé*.
+Each row of the list has a bar on its left saying where it stands: blue while processed, pale blue queued or being read, pale green ready, green done (or already done), red failed. Its state in words: *Lecture…* (reading the tracks), *Prêt* (ready), *Déjà traité* (already done), *Rien à faire* (no French subtitles), *Illisible* (unreadable file), *En attente* (queued), *Terminé* (done), *Échec* (failed: hover for the reason), *Annulé* (cancelled). On its right, its buttons:
+
+- ↻ *Refaire ce fichier*: processes it again on its own, even if it's done;
+- 📁: opens the written file's folder;
+- ✕: takes it off the list (*Tout retirer* empties the whole list).
+
+Top right, ⚙ *Options*: the theme (*Système*, *Clair* or *Sombre*: system, light or dark) and the update check at startup.
 
 ## Reading a file's details
 
-Click a file to see, under the list:
+Click a file to see, under the list, in *Ce qui sera fait* (what will be done):
 
 - **The default audio** and the subtitle track that follows from it (see [below](#track-names-and-the-default-track)).
 - **Each subtitle track**: what it is now (language, format, title), what it becomes (*Devient*), its flags (*défaut*, *forcés*) and its treatment (*Traitement*):

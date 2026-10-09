@@ -47,6 +47,7 @@ Il fait partie de **Bobine**, une petite suite d'outils pour vidéothèque, avec
 - 📝 **Les SRT aussi** : les SRT français sont convertis en ASS dans le même style (italiques, `{\an8}`, répliques à tirets…).
 - 🗂️ **Une série entière en une passe** : glisse un dossier, ses saisons sont incluses ; les fichiers déjà faits sont sautés.
 - 🛡️ **Rien de perdu** : vidéo, audio, sous-titres des autres langues et chapitres sont copiés tels quels, rien n'est réencodé, le fichier d'origine n'est jamais modifié, et chaque sortie est vérifiée avant d'être gardée.
+- 🖱️ **Glisser-déposer** de fichiers ou de dossiers entiers, thème clair ou sombre (ou celui du système), mises à jour automatiques.
 
 ## Installation
 

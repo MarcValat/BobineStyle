@@ -25,19 +25,25 @@ Ce guide explique comment utiliser Bobine Style et ce qu'il fait exactement à u
 
 ## Traiter des fichiers
 
-1. **Ajoute des fichiers** (*Fichiers*) : *Ajouter des MKV…* pour des fichiers, *Ajouter un dossier…* pour un dossier, ou glisse-les sur la fenêtre. Avec *Inclure les sous-dossiers (saisons)* coché, le dossier d'une série apporte toutes ses saisons. Les dossiers `Output` et les fichiers inachevés ne sont jamais repris.
+1. **Ajoute des fichiers** (panneau *Ajouter*, à gauche) : *Ajouter des MKV…* pour des fichiers, *Ajouter un dossier…* pour un dossier, *+ Ajouter* en tête de la liste, ou glisse-les sur la fenêtre (la liste vide est une zone de dépôt). Avec *Inclure les sous-dossiers (saisons)* coché, le dossier d'une série apporte toutes ses saisons. Les dossiers `Output` et les fichiers inachevés ne sont jamais repris.
 2. **Choisis où vont les résultats** (*Sortie*) :
-   - *Output à côté* : un dossier `Output` à côté de chaque fichier, sous le même nom ;
-   - *Autre dossier* : un seul dossier pour tout (deux épisodes de même nom venant de saisons différentes vont dans le sous-dossier de leur saison).
+   - *À côté* : un dossier `Output` à côté de chaque fichier, sous le même nom ;
+   - *Autre dossier* : un seul dossier pour tout, choisi à ce moment-là (*Changer…* pour en prendre un autre) ; deux épisodes de même nom venant de saisons différentes vont dans le sous-dossier de leur saison.
 
    *Refaire les fichiers déjà traités* retraite les fichiers dont le résultat existe déjà ; sinon ils sont marqués *Déjà traité* et sautés : une série interrompue se relance simplement.
-3. **Applique** (*Appliquer le style*, avec le nombre de fichiers à traiter) : deux fichiers à la fois, chacun avec sa barre de progression. *Annuler* arrête : le fichier en cours d'écriture est supprimé, les originaux ne sont de toute façon jamais touchés.
+3. **Applique** (*Appliquer le style*, en bas à gauche, avec le nombre de fichiers à traiter) : deux fichiers à la fois, chacun avec sa barre de progression. *Annuler l'export* arrête : le fichier en cours d'écriture est supprimé, les originaux ne sont de toute façon jamais touchés.
 
-États dans la liste : *Lecture…* (lecture des pistes), *Prêt*, *Rien à faire* (pas de sous-titres français), *Illisible*, *En attente*, *Terminé* avec *Afficher* pour ouvrir son dossier, *Échec* (survole pour la raison), *Annulé*.
+Chaque ligne de la liste a une barre à sa gauche qui dit où elle en est : bleue pendant le traitement, bleu pâle en attente ou en lecture, vert pâle prête, verte terminée (ou déjà traitée), rouge en échec. Son état en toutes lettres : *Lecture…*, *Prêt*, *Déjà traité*, *Rien à faire* (pas de sous-titres français), *Illisible*, *En attente*, *Terminé*, *Échec* (survole pour la raison), *Annulé*. À droite, ses boutons :
+
+- ↻ *Refaire ce fichier* : le retraite seul, même s'il est déjà fait ;
+- 📁 : ouvre le dossier du fichier écrit ;
+- ✕ : le retire de la liste (*Tout retirer* vide la liste entière).
+
+En haut à droite, ⚙ *Options* : le thème (*Système*, *Clair* ou *Sombre*) et la vérification des mises à jour au démarrage.
 
 ## Lire le détail d'un fichier
 
-Clique sur un fichier pour voir, sous la liste :
+Clique sur un fichier pour voir, sous la liste, dans *Ce qui sera fait* :
 
 - **L'audio par défaut** et la piste de sous-titres qui en découle (voir [plus bas](#noms-des-pistes-et-piste-par-défaut)).
 - **Chaque piste de sous-titres** : ce qu'elle est (langue, format, titre), ce qu'elle devient (*Devient*), son marquage (*défaut*, *forcés*) et son traitement :
