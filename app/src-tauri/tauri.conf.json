@@ -40,9 +40,31 @@
     "resources": {
       "binaries/bobinestyle-engine/": "engine/"
     },
+    "createUpdaterArtifacts": true,
+    "linux": {
+      "deb": {
+        "desktopTemplate": "./linux/hidden.desktop.hbs",
+        "files": {
+          "/usr/share/applications/bobinestyle.desktop": "./linux/bobinestyle.desktop",
+          "/usr/share/metainfo/com.bobinestyle.app.metainfo.xml": "./linux/com.bobinestyle.app.metainfo.xml",
+          "/usr/share/icons/hicolor/32x32/apps/bobine-style.png": "./icons/32x32.png",
+          "/usr/share/icons/hicolor/64x64/apps/bobine-style.png": "./icons/64x64.png",
+          "/usr/share/icons/hicolor/128x128/apps/bobine-style.png": "./icons/128x128.png",
+          "/usr/share/icons/hicolor/256x256/apps/bobine-style.png": "./icons/128x128@2x.png",
+          "/usr/share/icons/hicolor/512x512/apps/bobine-style.png": "./icons/icon.png",
+          "/usr/share/icons/hicolor/scalable/apps/bobine-style.svg": "./icons/icon-source.svg"
+        },
+        "postInstallScript": "./linux/refresh-desktop.sh",
+        "postRemoveScript": "./linux/refresh-desktop.sh"
+      }
+    },
     "windows": {
       "nsis": {
         "installerHooks": "./windows/installer-hooks.nsh",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "sidebarImage": "./windows/installer-sidebar.bmp",
+        "headerImage": "./windows/installer-header.bmp",
         "languages": [
           "English",
           "French"
@@ -51,8 +73,7 @@
       }
     },
     "shortDescription": "Applique le style maison aux sous-titres français des MKV",
-    "publisher": "Marc Valat",
-    "createUpdaterArtifacts": true
+    "publisher": "Marc Valat"
   },
   "plugins": {
     "updater": {

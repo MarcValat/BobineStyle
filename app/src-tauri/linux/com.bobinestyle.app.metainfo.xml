@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.bobinestyle.app</id>
+  <name>Bobine Style</name>
+  <summary>Give the French subtitles of MKV files one clean house style</summary>
+  <summary xml:lang="fr">Applique un style maison propre aux sous-titres français des MKV</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.marcvalat">
+    <name>Marc Valat</name>
+  </developer>
+  <description>
+    <p>Bobine Style restyles the French subtitles of MKV files in one readable house style, scaled to each video: it finds which style is the dialogue, the italics or the signs, names the full and forced tracks, attaches the fonts, and remuxes without re-encoding.</p>
+    <p xml:lang="fr">Bobine Style applique un style maison lisible aux sous-titres français des MKV, adapté à chaque vidéo : il reconnaît les dialogues, les italiques et les panneaux, nomme les pistes complètes et forcées, joint les polices et remuxe sans réencodage.</p>
+  </description>
+  <launchable type="desktop-id">bobinestyle.desktop</launchable>
+  <icon type="stock">bobine-style</icon>
+  <url type="homepage">https://github.com/MarcValat/BobineStyle</url>
+  <url type="bugtracker">https://github.com/MarcValat/BobineStyle/issues</url>
+  <pkgname>bobine-style</pkgname>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+</component>
