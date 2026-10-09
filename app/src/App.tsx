@@ -7,6 +7,7 @@ import FileTable from "./FileTable";
 import { InfoTip } from "./InfoTip";
 import { OptionsButton } from "./Options";
 import PlanDetail from "./PlanDetail";
+import { PillSwitch } from "./PillSwitch";
 import { UpdateButton } from "./UpdateButton";
 import { errorMessage, type FileItem, isRunnable, limiter } from "./shared";
 
@@ -177,28 +178,32 @@ export default function App() {
 
           <section className="panel run-panel">
             <h2>Sortie</h2>
-            <div className="output-current">
-              {folder === null ? (
-                <>
-                  À côté des originaux, dans un dossier « Output »
-                  <InfoTip>Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais modifiés.</InfoTip>
-                </>
-              ) : (
+            <PillSwitch
+              className="pill-switch-wide"
+              label="Où écrire les fichiers traités"
+              options={[
+                ["next", "À côté des originaux"],
+                ["folder", "Autre dossier"],
+              ]}
+              value={folder === null ? "next" : "folder"}
+              onChange={(choice) => (choice === "next" ? setFolder(null) : pickOutputFolder())}
+              disabled={running}
+            />
+            {folder === null ? (
+              <p className="output-current">
+                Dans un dossier « Output », sous le même nom
+                <InfoTip>Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais modifiés.</InfoTip>
+              </p>
+            ) : (
+              <div className="output-folder">
                 <div className="file-path" title={folder}>
                   {folder}
                 </div>
-              )}
-            </div>
-            <div className="output-buttons">
-              <button className="small-button" onClick={pickOutputFolder} disabled={running}>
-                Choisir un dossier…
-              </button>
-              {folder !== null && (
-                <button className="small-button" onClick={() => setFolder(null)} disabled={running}>
-                  À côté des originaux
+                <button className="small-button" onClick={pickOutputFolder} disabled={running}>
+                  Changer…
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             <label className="check-row">
               <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} disabled={running} />
               Refaire les fichiers déjà traités
