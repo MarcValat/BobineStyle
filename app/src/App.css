@@ -843,15 +843,26 @@ button:focus-visible {
 }
 
 .file-table-wrap td {
-  padding: 0.45em 0.5em;
+  padding: 0.6em 0.6em;
   border-bottom: 1px solid var(--border);
+}
+
+/* As every table of the suite: the column rules kept (they help read a row
+   across), every other row faintly tinted. */
+.file-table-wrap th + th,
+.file-table-wrap td + td {
+  border-left: 1px solid var(--border);
+}
+
+.file-table-wrap tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface-sunken) 60%, transparent);
 }
 
 .file-table-wrap tr:last-child td {
   border-bottom: none;
 }
 
-.file-table-wrap tbody tr {
+.file-table-wrap tbody tr:not(.empty-row) {
   cursor: pointer;
 }
 
@@ -861,6 +872,39 @@ button:focus-visible {
 
 .file-table-wrap tbody tr.selected {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.col-index {
+  width: 2.5em;
+}
+
+.index-cell {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.file-table-wrap th.index-cell {
+  text-align: center;
+}
+
+/* "+ Ajouter" in the file column's header (as Bobine Subs' batch table). */
+.th-add {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.th-add button {
+  padding: 0.15em 0.6em;
+  font-size: 1.15em;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* The empty list: the drop zone in a cell of its own, inset in it. */
+.file-table-wrap td[colspan] {
+  padding: 0.8em;
+  background: var(--surface);
 }
 
 .col-french {
@@ -976,13 +1020,32 @@ button.link:hover:not(:disabled) {
   color: var(--text-muted);
 }
 
+/* The tracks in a frame, as the file list: column rules, every other
+   track (with its notes) faintly tinted. */
+.tracks-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
 .detail-body table {
   border-collapse: collapse;
+  border-style: hidden;
   width: 100%;
 }
 
+.detail-body th + th,
+.detail-body tr:not(.notes) td + td {
+  border-left: 1px solid var(--border);
+}
+
+.detail-body tbody:nth-of-type(even) {
+  background: color-mix(in srgb, var(--surface-sunken) 60%, transparent);
+}
+
 .detail-body th {
-  padding: 0.3em 0.5em;
+  padding: 0.4em 0.6em;
+  background: var(--surface-sunken);
   text-align: left;
   font-size: 0.75em;
   font-weight: 700;
@@ -993,7 +1056,7 @@ button.link:hover:not(:disabled) {
 }
 
 .detail-body td {
-  padding: 0.4em 0.5em;
+  padding: 0.6em 0.6em;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -1166,10 +1229,4 @@ button.link:hover:not(:disabled) {
   max-width: 30em;
   font-size: 0.9em;
   text-align: center;
-}
-
-/* The files panel while empty: the whole height, the zone filling it. */
-.files-panel:has(> .drop-zone-empty) {
-  flex: 1 1 auto;
-  max-height: none;
 }
