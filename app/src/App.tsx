@@ -80,8 +80,10 @@ export default function App() {
   const runnable = files.filter((f) => isRunnable(f, force));
   const finished = files.filter((f) => f.status === "done").length;
 
-  async function run() {
-    const batch = runnable.map((f) => ({ path: f.path, output: f.output!.path }));
+  /** Processes `targets` (the main button: every runnable file; a row's
+   * "Refaire ce fichier": that one, written again). */
+  async function run(targets: FileItem[]) {
+    const batch = targets.map((f) => ({ path: f.path, output: f.output!.path }));
     if (batch.length === 0) return;
     cancelled.current = false;
     setRunning(true);
@@ -223,7 +225,7 @@ export default function App() {
                   </button>
                 </div>
               ) : (
-                <button className="primary-button export-button" onClick={run} disabled={runnable.length === 0}>
+                <button className="primary-button export-button" onClick={() => run(runnable)} disabled={runnable.length === 0}>
                   Appliquer le style{runnable.length > 0 ? ` (${runnable.length})` : ""}
                 </button>
               )}
@@ -255,6 +257,10 @@ export default function App() {
                 onSelect={setSelected}
                 onRemove={remove}
                 onAdd={pickFiles}
+                onRedo={(path) => {
+                  const file = files.find((f) => f.path === path);
+                  if (file) run([file]);
+                }}
               />
             </div>
           </section>
