@@ -7,6 +7,10 @@ import { engineReady } from "./engine";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/inter/wght-italic.css";
 import "./App.css";
+import { applyTheme, loadTheme } from "./theme";
+
+// The theme chosen in Options, before the first paint.
+applyTheme(loadTheme());
 
 // Wait for the engine from the start: the UI is usable meanwhile.
 engineReady().catch(() => {});
