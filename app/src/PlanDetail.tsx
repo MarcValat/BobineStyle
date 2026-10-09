@@ -40,21 +40,21 @@ export default function PlanDetail({ file }: { file: FileItem }) {
                 <>Pas d'audio : sous-titres complets par défaut.</>
               )}
             </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Piste</th>
-                  <th>Devient</th>
-                  <th>Marquage</th>
-                  <th>Traitement</th>
-                </tr>
-              </thead>
-              <tbody>
+            <div className="tracks-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Piste</th>
+                    <th>Devient</th>
+                    <th>Marquage</th>
+                    <th>Traitement</th>
+                  </tr>
+                </thead>
                 {plan.tracks.map((t) => (
-                  <TrackRow key={t.index} track={t} />
+                  <TrackRows key={t.index} track={t} />
                 ))}
-              </tbody>
-            </table>
+              </table>
+            </div>
             <Fonts attached={plan.fonts} present={plan.fonts_present} />
             {plan.warnings.map((w) => (
               <p key={w} className="warning">
@@ -83,10 +83,11 @@ export default function PlanDetail({ file }: { file: FileItem }) {
 
 const ACTIONS = { restyle: "Style maison", convert: "SRT converti en ASS", copy: "Copiée telle quelle" };
 
-function TrackRow({ track: t }: { track: PlannedTrack }) {
+/** A track and its notes: one group, tinted as one in the table. */
+function TrackRows({ track: t }: { track: PlannedTrack }) {
   const current = [languageName(t.language), t.codec, t.title && `« ${t.title} »`].filter(Boolean).join(" · ");
   return (
-    <>
+    <tbody>
       <tr className={t.french ? "" : "dim"}>
         <td>
           <span className="muted">#{t.index}</span> {current}
@@ -112,7 +113,7 @@ function TrackRow({ track: t }: { track: PlannedTrack }) {
           </td>
         </tr>
       )}
-    </>
+    </tbody>
   );
 }
 
