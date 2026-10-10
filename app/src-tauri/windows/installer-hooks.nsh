@@ -21,6 +21,15 @@
   Pop $0
 !macroend
 
+!macro NSIS_HOOK_POSTINSTALL
+  ; The exe keeps its path from one version to the next, and Explorer's icon
+  ; cache is keyed by path: after 1.1.0 changed the icon, the taskbar went on
+  ; showing the old one through reboots and even a reinstall (the Start menu
+  ; and the title bar had the new one). Telling Explorer that icons changed
+  ; refreshes it (SHCNE_ASSOCCHANGED = 0x08000000, SHCNF_FLUSH = 0x1000).
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x1000, p 0, p 0)'
+!macroend
+
 !macro NSIS_HOOK_PREUNINSTALL
   nsExec::Exec 'taskkill /F /T /IM bobinestyle-engine.exe'
   Pop $0

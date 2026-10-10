@@ -1,6 +1,6 @@
 [project]
 name = "bobinestyle"
-version = "1.1.0"
+version = "1.1.1"
 description = "Applique le style maison aux sous-titres français d'un MKV et le remuxe (suite Bobine)"
 readme = "README.md"
 authors = [
