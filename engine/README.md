@@ -31,4 +31,5 @@ uv run bobinestyle serve                       # the app's local HTTP server (do
 - `srt.py`: SRT cues to ASS lines with their role; `measure.py` measures text with the real font (Pillow) to centre dash blocks.
 - `mux.py`: the plan (French tracks, full/forced, default track from the default audio, fonts to attach) and the ffmpeg remux (`-copyts`: extracted tracks keep the container's timestamps).
 - `server.py` + `jobs.py`: FastAPI sidecar for the app; remuxes run as cancellable jobs streaming progress over WebSocket.
+- `i18n.py`: what the user reads (plan notes, warnings, job logs, errors) in French or English, `tr()` on French templates; the app sets the language through `POST /language`, the CLI stays French.
 - `packaging/`: PyInstaller build of the sidecar for the app's installer.

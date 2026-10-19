@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from bobinestyle.cancellation import Cancelled, current_cancel_event
+from bobinestyle.i18n import tr
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 
 # Never flash a console window per ffmpeg call once packaged without a console.
@@ -31,7 +32,7 @@ def resolve_ffmpeg() -> str:
 
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception as exc:  # pragma: no cover - defensive
-        raise FFmpegError("ffmpeg not found: neither on PATH nor through the imageio-ffmpeg package.") from exc
+        raise FFmpegError(tr("ffmpeg introuvable : ni sur le PATH, ni via le paquet imageio-ffmpeg.")) from exc
 
 
 # How often a running ffmpeg checks for a cancellation.
@@ -88,19 +89,25 @@ def _run(
 def run_checked(cmd: list[str], on_size: Callable[[int], None] | None = None) -> bytes:
     proc = _run(cmd, on_size=on_size)
     if proc.returncode != 0:
-        raise FFmpegError(f"ffmpeg failed:\n{' '.join(cmd)}\n{proc.stderr.decode(errors='replace')}")
+        raise FFmpegError(
+            tr(
+                "Échec de ffmpeg :\n{command}\n{details}",
+                command=" ".join(cmd),
+                details=proc.stderr.decode(errors="replace"),
+            )
+        )
     return proc.stdout
 
 
 def ffmpeg_info(path: str) -> str:
     """``ffmpeg -i path``'s report."""
     if not Path(path).is_file():
-        raise FFmpegError(f"File not found: {path}")
+        raise FFmpegError(tr("Fichier introuvable : {path!r}", path=path))
     proc = _run([resolve_ffmpeg(), "-hide_banner", "-i", path])
     # UTF-8 explicitly: ffmpeg writes tags that way, cp1252 would mangle titles.
     info = proc.stderr.decode("utf-8", errors="replace")
     if "Invalid data found" in info:
-        raise FFmpegError(f"Cannot read {path!r}:\n{info}")
+        raise FFmpegError(tr("Impossible de lire {path!r} :\n{details}", path=path, details=info))
     return info
 
 
@@ -185,7 +192,7 @@ def extract_subtitle_text(path: str, track: int, codec: str) -> str:
     timestamps (ffmpeg otherwise shifts them by the file's start time)."""
     fmt = TEXT_FORMATS.get(codec)
     if fmt is None:
-        raise FFmpegError(f"Unsupported subtitle format: {codec}")
+        raise FFmpegError(tr("Format de sous-titres non pris en charge : {codec}", codec=codec))
     proc = _run(
         [
             resolve_ffmpeg(),
@@ -205,7 +212,13 @@ def extract_subtitle_text(path: str, track: int, codec: str) -> str:
         ]
     )
     if proc.returncode != 0:
-        raise FFmpegError(f"Cannot extract subtitle track {track}:\n{proc.stderr.decode(errors='replace')}")
+        raise FFmpegError(
+            tr(
+                "Impossible d'extraire la piste de sous-titres {track} :\n{details}",
+                track=track,
+                details=proc.stderr.decode(errors="replace"),
+            )
+        )
     return proc.stdout.decode("utf-8-sig", errors="replace").replace("\r\n", "\n")
 
 

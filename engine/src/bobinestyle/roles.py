@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 
 from bobinestyle.ass import AssDocument, Event, Style
+from bobinestyle.i18n import tr
 
 
 class Role(StrEnum):
@@ -31,7 +32,8 @@ class Role(StrEnum):
 
     @property
     def label(self) -> str:
-        return _LABELS[self]
+        """Its name in the GUI's language (French in the CLI)."""
+        return tr(_LABELS[self])
 
 
 _LABELS = {

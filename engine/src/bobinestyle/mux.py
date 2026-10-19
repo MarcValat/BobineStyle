@@ -32,6 +32,7 @@ from bobinestyle.ffmpeg_backend import (
     subtitle_streams,
 )
 from bobinestyle.fonts import MIMETYPES, FontFace, faces_for, font_faces, fonts_used, system_fonts
+from bobinestyle.i18n import tr
 from bobinestyle.matroska import MatroskaError, cluster_timestamps, out_of_order
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 from bobinestyle.srt import parse_srt, srt_to_ass
@@ -114,16 +115,16 @@ def plan(path: str) -> MuxPlan:
             result = apply_house_style(extract_subtitle_text(path, track.stream.index, track.stream.codec), size)
             track.text = result.text
             track.dialogue_lines = result.report.dialogue_lines
-            track.notes += [f"{name} : {role.label}" for name, role in result.restyled]
+            track.notes += [tr("{name} : {label}", name=name, label=role.label) for name, role in result.restyled]
             track.notes += result.notes + result.warnings
             needed_fonts |= fonts_used(parse_ass(result.text))
         elif fmt == "srt":
             cues = parse_srt(extract_subtitle_text(path, track.stream.index, track.stream.codec))
             track.text = srt_to_ass(cues, size)
             track.dialogue_lines = len(cues)
-            track.notes.append("SRT converti en ASS")
+            track.notes.append(tr("SRT converti en ASS"))
         else:
-            track.notes.append("format image : copié tel quel")
+            track.notes.append(tr("format image : copié tel quel"))
 
     french = [t for t in tracks if t.french]
     most = max((t.dialogue_lines or 0 for t in french), default=0)
@@ -136,11 +137,11 @@ def plan(path: str) -> MuxPlan:
     if any(t.default for t in french):
         for track in tracks:
             if not track.french and track.stream.default:
-                track.notes.append("n'est plus la piste par défaut")
+                track.notes.append(tr("n'est plus la piste par défaut"))
 
     fonts, present, missing = _plan_fonts(path, needed_fonts) if french else ([], [], [])
     if missing:
-        warnings.append(f"polices introuvables sur ce PC, non jointes : {', '.join(sorted(missing))}")
+        warnings.append(tr("polices introuvables sur ce PC, non jointes : {fonts}", fonts=", ".join(sorted(missing))))
     return MuxPlan(path, size, streams, tracks, fonts, present, missing, audio, warnings)
 
 
@@ -204,7 +205,7 @@ def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None
     the copy got (0 to 1)."""
     output = Path(output)
     if output.resolve() == Path(p.source).resolve():
-        raise MuxError("la sortie ne peut pas remplacer le fichier source")
+        raise MuxError(tr("la sortie ne peut pas remplacer le fichier source"))
     output.parent.mkdir(parents=True, exist_ok=True)
     by_global = {t.stream.global_index: t for t in p.tracks}
 
@@ -325,22 +326,34 @@ def verify(p: MuxPlan, output: str) -> None:
     expected += [("Attachment", None)] * len(p.fonts)
     got = [(s.kind, s.codec) for s in result]
     if len(got) != len(expected):
-        raise MuxError(f"{len(got)} flux dans la sortie au lieu de {len(expected)}")
+        raise MuxError(tr("{got} flux dans la sortie au lieu de {expected}", got=len(got), expected=len(expected)))
     for n, ((kind, codec), (got_kind, got_codec)) in enumerate(zip(expected, got)):
         if kind != got_kind or (kind != "Attachment" and codec != got_codec):
-            raise MuxError(f"flux {n} : {kind} {codec} devenu {got_kind} {got_codec}")
+            raise MuxError(
+                tr(
+                    "flux {n} : {kind} {codec} devenu {got_kind} {got_codec}",
+                    n=n,
+                    kind=kind,
+                    codec=codec,
+                    got_kind=got_kind,
+                    got_codec=got_codec,
+                )
+            )
     before, after = container_duration(source_info), container_duration(output_info)
     if before is not None and (after is None or abs(before - after) > DURATION_TOLERANCE):
-        raise MuxError(f"durée {after} s au lieu de {before} s")
+        raise MuxError(tr("durée {after} s au lieu de {before} s", after=after, before=before))
     if source_info.count("DOVI configuration") != output_info.count("DOVI configuration"):
-        raise MuxError("les métadonnées Dolby Vision ont été perdues")
+        raise MuxError(tr("les métadonnées Dolby Vision ont été perdues"))
     # Clusters in time order: VLC skips the blocks of one written too early
     # (subtitles that never show), however well ffmpeg itself reads it.
     try:
         backwards = out_of_order(cluster_timestamps(output))
     except (MatroskaError, OSError) as exc:
-        raise MuxError(f"fichier écrit illisible : {exc}") from exc
+        raise MuxError(tr("fichier écrit illisible : {error}", error=exc)) from exc
     if backwards:
         raise MuxError(
-            f"{backwards} groupe(s) de blocs hors de l'ordre du temps : certains lecteurs n'afficheraient pas tout"
+            tr(
+                "{count} groupe(s) de blocs hors de l'ordre du temps : certains lecteurs n'afficheraient pas tout",
+                count=backwards,
+            )
         )

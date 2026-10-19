@@ -17,7 +17,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from starlette.datastructures import QueryParams
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -26,6 +26,7 @@ from bobinestyle import __version__
 from bobinestyle.batch import OUTPUT_DIR, find_videos
 from bobinestyle.ffmpeg_backend import FFmpegError
 from bobinestyle.fonts import system_fonts
+from bobinestyle.i18n import LANGUAGES, set_language, tr
 from bobinestyle.jobs import get_job, start_job
 from bobinestyle.mux import FRENCH_CODES, MuxError, MuxPlan, default_output, mux, plan
 
@@ -99,6 +100,20 @@ async def _engine_error(_request: Request, exc: Exception) -> JSONResponse:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": __version__}
+
+
+class LanguageRequest(BaseModel):
+    language: str
+
+
+@app.post("/language", status_code=204)
+def language(req: LanguageRequest) -> Response:
+    """The language of the messages the GUI shows (plan notes, job logs,
+    errors): it sends its own at startup and whenever the user changes it."""
+    if req.language not in LANGUAGES:
+        raise HTTPException(400, f"Unknown language: {req.language!r}")
+    set_language(req.language)
+    return Response(status_code=204)
 
 
 # --- files -------------------------------------------------------------------
@@ -238,7 +253,7 @@ class PlanRequest(BaseModel):
 def plan_file(req: PlanRequest) -> PlanModel:
     """What processing ``path`` would do, without writing anything."""
     if not Path(req.path).is_file():
-        raise HTTPException(400, f"Fichier introuvable : {req.path}")
+        raise HTTPException(400, tr("Fichier introuvable : {path}", path=req.path))
     return PlanModel.of(plan(req.path))
 
 
@@ -257,13 +272,13 @@ class MuxRequest(BaseModel):
 @app.post("/jobs/mux", response_model=JobStarted)
 def start_mux(req: MuxRequest) -> JobStarted:
     def run(log, progress):
-        log("Analyse des pistes…")
+        log(tr("Analyse des pistes…"))
         p = plan(req.source)
         if not any(t.french for t in p.tracks):
-            raise MuxError("aucune piste de sous-titres française")
-        log("Remux…")
+            raise MuxError(tr("aucune piste de sous-titres française"))
+        log(tr("Remux…"))
         written = mux(p, req.output, progress)
-        log(f"Écrit et vérifié : {written}")
+        log(tr("Écrit et vérifié : {path}", path=written))
         return {"path": str(written), "plan": PlanModel.of(p).model_dump()}
 
     return JobStarted(job_id=start_job(run).id)
@@ -274,7 +289,7 @@ async def job_ws(websocket: WebSocket, job_id: str) -> None:
     await websocket.accept()
     job = get_job(job_id)
     if job is None:
-        await websocket.send_json({"type": "error", "message": f"Tâche inconnue : {job_id}"})
+        await websocket.send_json({"type": "error", "message": tr("Tâche inconnue : {job_id}", job_id=job_id)})
         await websocket.close()
         return
     since = 0
@@ -305,6 +320,6 @@ async def job_ws(websocket: WebSocket, job_id: str) -> None:
 def cancel_job(job_id: str) -> dict[str, bool]:
     job = get_job(job_id)
     if job is None:
-        raise HTTPException(404, f"Tâche inconnue : {job_id}")
+        raise HTTPException(404, tr("Tâche inconnue : {job_id}", job_id=job_id))
     job.cancel()
     return {"cancelled": True}

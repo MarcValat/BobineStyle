@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 
 from bobinestyle.ass import AssDocument, Event, Style, parse_ass
+from bobinestyle.i18n import tr
 from bobinestyle.measure import centring_margin
 from bobinestyle.roles import DIALOGUE_ROLES, Role, ScriptReport, analyze
 from bobinestyle.scale import screen_scale
@@ -152,8 +153,14 @@ def apply_house_style(text: str, video_size: tuple[int, int] | None) -> StyleRes
         play_res = old or DEFAULT_PLAY_RES
         if old and abs(old[0] / old[1] - width / height) > 0.01:
             warnings.append(
-                f"PlayRes {old[0]}x{old[1]} n'a pas les proportions de la vidéo ({width}x{height}) : "
-                "le texte peut être déformé, PlayRes conservé à cause du positionnement"
+                tr(
+                    "PlayRes {old_width}x{old_height} n'a pas les proportions de la vidéo ({width}x{height}) : "
+                    "le texte peut être déformé, PlayRes conservé à cause du positionnement",
+                    old_width=old[0],
+                    old_height=old[1],
+                    width=width,
+                    height=height,
+                )
             )
     else:
         play_res = (width, height)
@@ -185,15 +192,15 @@ def apply_house_style(text: str, video_size: tuple[int, int] | None) -> StyleRes
 
     if not doc.scaled_border_and_shadow and any(_BORDER_TAG_RE.search(e.text) for e in doc.events):
         warnings.append(
-            "ScaledBorderAndShadow passe à yes : les contours et ombres fixés dans les lignes changent d'épaisseur"
+            tr("ScaledBorderAndShadow passe à yes : les contours et ombres fixés dans les lignes changent d'épaisseur")
         )
     _set_info(lines, doc, "ScaledBorderAndShadow", "yes")
     if changed:
         _set_info(lines, doc, "PlayResX", str(play_res[0]))
         _set_info(lines, doc, "PlayResY", str(play_res[1]))
     if not restyled:
-        warnings.append("aucun style de dialogue : seuls les en-têtes ont été modifiés")
-    notes = [f"{centred} réplique(s) à tirets centrée(s) par leur marge"] if centred else []
+        warnings.append(tr("aucun style de dialogue : seuls les en-têtes ont été modifiés"))
+    notes = [tr("{count} réplique(s) à tirets centrée(s) par leur marge", count=centred)] if centred else []
     return StyleResult("\n".join(lines) + "\n", play_res, changed, report, restyled, warnings, notes)
 
 
