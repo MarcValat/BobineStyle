@@ -1,5 +1,6 @@
 // Client for the engine sidecar (engine/src/bobinestyle/server.py).
 import { engineHeaders, engineReady, getEngineToken, getEngineUrl } from "./engine";
+import { t } from "./i18n";
 
 export interface PlannedTrack {
   index: number;
@@ -45,7 +46,7 @@ async function engineFetch(path: string, init?: RequestInit): Promise<Response> 
   for (const [name, value] of Object.entries(await engineHeaders())) headers.set(name, value);
   const resp = await fetch(`${await getEngineUrl()}${path}`, { ...init, headers });
   if (!resp.ok) {
-    let detail: unknown = `Erreur ${resp.status}`;
+    let detail: unknown = t().common.httpError(resp.status);
     try {
       detail = (await resp.json()).detail ?? detail;
     } catch {
@@ -97,7 +98,7 @@ type JobEvent<T> =
 
 export class JobCancelled extends Error {
   constructor() {
-    super("Annulé");
+    super(t().common.cancelled);
   }
 }
 
@@ -121,7 +122,7 @@ export function runJob<T>(jobId: Promise<string>, onProgress: (value: number) =>
           if (event.type !== "log" && event.type !== "progress") finished = true;
         };
         ws.onclose = () => {
-          if (!finished) reject(new Error("Le moteur s'est arrêté pendant la tâche."));
+          if (!finished) reject(new Error(t().common.engineStopped));
         };
       })
       .catch(reject);

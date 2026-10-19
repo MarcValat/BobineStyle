@@ -4,6 +4,7 @@ import { cancelJob, expandPaths, JobCancelled, type MuxResult, planFile, planOut
 import { EngineStatusBadge } from "./EngineStatus";
 import { DropOverlay, useFileDrop } from "./FileDrop";
 import FileTable from "./FileTable";
+import { useT } from "./i18n";
 import { InfoTip } from "./InfoTip";
 import { OptionsButton } from "./Options";
 import PlanDetail from "./PlanDetail";
@@ -16,6 +17,7 @@ const PLANNING = limiter(2);
 const MUXING = 2;
 
 export default function App() {
+  const t = useT();
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [recursive, setRecursive] = useState(true);
@@ -44,7 +46,7 @@ export default function App() {
       }
       const known = new Set(filesRef.current.map((f) => f.path));
       const added = found.filter((p) => !known.has(p));
-      if (found.length === 0) setAddError("Aucun fichier MKV là-dedans.");
+      if (found.length === 0) setAddError(t.add.noMkv);
       if (added.length === 0) return;
       setFiles((fs) => [...fs, ...added.map((path) => ({ path, status: "planning" as const }))]);
       setSelected((s) => s ?? added[0]);
@@ -54,7 +56,7 @@ export default function App() {
           .catch((e) => update(path, { status: "plan_error", error: errorMessage(e) }));
       }
     },
-    [recursive, update],
+    [recursive, update, t],
   );
 
   // Where each file goes, and whether it's already there.
@@ -126,21 +128,21 @@ export default function App() {
   }
 
   async function pickFiles() {
-    const picked = await open({ title: "Ajouter des MKV", multiple: true, filters: [{ name: "Vidéos MKV", extensions: ["mkv"] }] });
+    const picked = await open({ title: t.add.files, multiple: true, filters: [{ name: t.add.mkvFilter, extensions: ["mkv"] }] });
     if (picked) add(Array.isArray(picked) ? picked : [picked]);
   }
 
   async function pickFolders() {
-    const picked = await open({ title: "Ajouter un dossier", directory: true, multiple: true });
+    const picked = await open({ title: t.add.folderDialog, directory: true, multiple: true });
     if (picked) add(Array.isArray(picked) ? picked : [picked]);
   }
 
   async function pickOutputFolder() {
-    const picked = await open({ title: "Dossier de sortie", directory: true, multiple: false });
+    const picked = await open({ title: t.output.folderDialog, directory: true, multiple: false });
     if (typeof picked === "string") setFolder(picked);
   }
 
-  const dragging = useFileDrop(true, running ? "Traitement en cours" : null, add);
+  const dragging = useFileDrop(true, running ? t.add.dropBlocked : null, add);
 
   // Dev only: lets automated checks add files without the native dialog.
   useEffect(() => {
@@ -162,28 +164,28 @@ export default function App() {
       <main className="app-main">
         <div className="left-column">
           <section className="panel">
-            <h2>Ajouter</h2>
+            <h2>{t.add.title}</h2>
             <button className="primary-button file-open-button" onClick={pickFiles} disabled={running}>
-              Ajouter des MKV…
+              {t.add.files}
             </button>
             <button className="file-open-button" onClick={pickFolders} disabled={running}>
-              Ajouter un dossier…
+              {t.add.folder}
             </button>
             <label className="check-row">
               <input type="checkbox" checked={recursive} onChange={(e) => setRecursive(e.target.checked)} />
-              Inclure les sous-dossiers (saisons)
+              {t.add.recursive}
             </label>
             {addError && <p className="error">{addError}</p>}
           </section>
 
           <section className="panel run-panel">
-            <h2>Sortie</h2>
+            <h2>{t.output.title}</h2>
             <PillSwitch
               className="pill-switch-wide"
-              label="Où écrire les fichiers traités"
+              label={t.output.where}
               options={[
-                ["next", "À côté"],
-                ["folder", "Autre dossier"],
+                ["next", t.output.nextTo],
+                ["folder", t.output.otherFolder],
               ]}
               value={folder === null ? "next" : "folder"}
               onChange={(choice) => (choice === "next" ? setFolder(null) : pickOutputFolder())}
@@ -191,11 +193,8 @@ export default function App() {
             />
             {folder === null ? (
               <p className="output-current">
-                Dans un dossier « Output » à côté des originaux, sous le même nom
-                <InfoTip>
-                  Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais
-                  modifiés.
-                </InfoTip>
+                {t.output.nextToText}
+                <InfoTip>{t.output.nextToHint}</InfoTip>
               </p>
             ) : (
               <div className="output-folder">
@@ -203,31 +202,26 @@ export default function App() {
                   {folder}
                 </div>
                 <button className="small-button" onClick={pickOutputFolder} disabled={running}>
-                  Changer…
+                  {t.common.change}
                 </button>
               </div>
             )}
             <label className="check-row">
               <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} disabled={running} />
-              Refaire les fichiers déjà traités
+              {t.output.redo}
             </label>
             <div className="export-box">
-              <p className="export-summary">
-                {files.length} fichier{files.length > 1 ? "s" : ""} · {runnable.length} à traiter
-                {finished > 0 && ` · ${finished} traité${finished > 1 ? "s" : ""}`}
-              </p>
+              <p className="export-summary">{t.output.summary(files.length, runnable.length, finished)}</p>
               {running ? (
                 <div className="export-running">
-                  <span className="export-running-label">
-                    Traitement… {finished} / {finished + queued}
-                  </span>
+                  <span className="export-running-label">{t.output.running(finished, finished + queued)}</span>
                   <button className="export-cancel" onClick={cancel}>
-                    Annuler l'export
+                    {t.common.cancelExport}
                   </button>
                 </div>
               ) : (
                 <button className="primary-button export-button" onClick={() => run(runnable)} disabled={runnable.length === 0}>
-                  Appliquer le style{runnable.length > 0 ? ` (${runnable.length})` : ""}
+                  {t.output.apply(runnable.length)}
                 </button>
               )}
             </div>
@@ -238,11 +232,7 @@ export default function App() {
           <section className="panel files-panel">
             <div className="panel-header">
               <h2>
-                Fichiers{" "}
-                <InfoTip>
-                  Chaque MKV ajouté est lu : ses pistes de sous-titres françaises, ce qu'elles deviendront et les polices à joindre. Clique
-                  sur une ligne pour voir le détail en dessous, puis lance « Appliquer le style ».
-                </InfoTip>
+                {t.list.title} <InfoTip>{t.list.hint}</InfoTip>
               </h2>
               <button
                 className="small-button"
@@ -252,7 +242,7 @@ export default function App() {
                   setSelected(null);
                 }}
               >
-                Tout retirer
+                {t.common.removeAll}
               </button>
             </div>
             <div className="file-table-wrap list-scroll">
@@ -276,9 +266,9 @@ export default function App() {
       </main>
       <DropOverlay
         dragging={dragging}
-        blocked={running ? "Attends la fin du traitement" : null}
-        label="Ajouter à la liste"
-        hint={recursive ? "Les dossiers sont parcourus avec leurs sous-dossiers" : undefined}
+        blocked={running ? t.add.dropBlocked : null}
+        label={t.add.dropToAdd}
+        hint={recursive ? t.add.dropRecursive : undefined}
       />
     </div>
   );

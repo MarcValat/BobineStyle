@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { engineReady } from "./engine";
+import { LanguageProvider } from "./i18n";
 // Inter, bundled: the same text on Windows and Linux, no network needed.
 // Its italic too: font-synthesis is off, a slanted regular is never faked.
 import "@fontsource-variable/inter";
@@ -22,6 +23,8 @@ if (!import.meta.env.DEV) {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
   </React.StrictMode>,
 );

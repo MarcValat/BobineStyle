@@ -1,4 +1,5 @@
 import type { Output, Plan } from "./api";
+import { t } from "./i18n";
 
 /** Where one file stands, from being read to being written. */
 type FileStatus =
@@ -38,23 +39,9 @@ export function fileName(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
-const LANGUAGES: Record<string, string> = {
-  fre: "français",
-  fra: "français",
-  eng: "anglais",
-  jpn: "japonais",
-  spa: "espagnol",
-  ger: "allemand",
-  deu: "allemand",
-  ita: "italien",
-  por: "portugais",
-  kor: "coréen",
-  chi: "chinois",
-  zho: "chinois",
-};
-
+/** A language code's name in the UI's language; a code it doesn't know as is. */
 export function languageName(code: string | null): string {
-  return code ? (LANGUAGES[code] ?? code) : "langue inconnue";
+  return code ? (t().languages.names[code] ?? code) : t().languages.unknown;
 }
 
 export function errorMessage(e: unknown): string {

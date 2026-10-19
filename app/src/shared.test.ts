@@ -31,11 +31,12 @@ describe("names", () => {
     expect(fileName("/home/marc/S01E01.mkv")).toBe("S01E01.mkv");
   });
 
+  // In the tests' DOM, the system is in English.
   it("names the languages it knows, keeps the others' codes", () => {
-    expect(languageName("fre")).toBe("français");
-    expect(languageName("fra")).toBe("français");
+    expect(languageName("fre")).toBe("French");
+    expect(languageName("fra")).toBe("French");
     expect(languageName("tha")).toBe("tha");
-    expect(languageName(null)).toBe("langue inconnue");
+    expect(languageName(null)).toBe("unknown language");
   });
 });
 

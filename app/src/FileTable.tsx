@@ -1,5 +1,7 @@
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { DropZone } from "./DropZone";
+import { useT } from "./i18n";
+import type { Messages } from "./i18n/fr";
 import { FolderIcon, RedoIcon } from "./icons";
 import { fileName, type FileItem, isRedoable } from "./shared";
 
@@ -27,6 +29,7 @@ export default function FileTable({
   /** Processes this one file again, even if its output exists. */
   onRedo: (path: string) => void;
 }) {
+  const t = useT();
   return (
     <table>
       <colgroup>
@@ -43,15 +46,15 @@ export default function FileTable({
           <th className="index-cell">#</th>
           <th>
             <div className="th-add">
-              <span>Fichier</span>
-              <button className="small-button" onClick={onAdd} disabled={running} title="Ajouter des MKV">
-                + Ajouter
+              <span>{t.list.file}</span>
+              <button className="small-button" onClick={onAdd} disabled={running} title={t.add.files}>
+                {t.common.add}
               </button>
             </div>
           </th>
-          <th>Sous-titres français</th>
-          <th>Polices</th>
-          <th>État</th>
+          <th>{t.list.french}</th>
+          <th>{t.list.fonts}</th>
+          <th>{t.list.state}</th>
           <th />
           <th />
         </tr>
@@ -61,8 +64,8 @@ export default function FileTable({
         {files.length === 0 && (
           <tr className="empty-row">
             <td colSpan={7}>
-              <DropZone title="Glisse des fichiers ou des dossiers ici" onClick={onAdd} disabled={running}>
-                Des MKV, ou le dossier d'une saison ou d'une série : leurs sous-titres français prendront le style maison.
+              <DropZone title={t.list.emptyTitle} onClick={onAdd} disabled={running}>
+                {t.list.emptyHint}
               </DropZone>
             </td>
           </tr>
@@ -77,7 +80,7 @@ export default function FileTable({
             <td className="file-name-cell" title={f.path}>
               {fileName(f.path)}
             </td>
-            <td>{frenchSummary(f)}</td>
+            <td>{frenchSummary(f, t)}</td>
             <td>{f.plan ? (f.plan.fonts.length > 0 ? f.plan.fonts.length : "—") : ""}</td>
             <td>
               <div className="state-cell">
@@ -87,8 +90,8 @@ export default function FileTable({
                 {!running && isRedoable(f) && f.output?.exists && (
                   <button
                     className="small-button icon-small-button"
-                    title="Refaire ce fichier"
-                    aria-label="Refaire ce fichier"
+                    title={t.list.redo}
+                    aria-label={t.list.redo}
                     onClick={(e) => {
                       e.stopPropagation();
                       onRedo(f.path);
@@ -103,8 +106,8 @@ export default function FileTable({
               {f.output?.exists && f.status !== "running" && f.status !== "no_french" && (
                 <button
                   className="small-button icon-small-button"
-                  title="Ouvrir le dossier du fichier écrit"
-                  aria-label="Ouvrir le dossier du fichier écrit"
+                  title={t.list.openFolder}
+                  aria-label={t.list.openFolder}
                   onClick={(e) => {
                     e.stopPropagation();
                     revealItemInDir(f.output!.path);
@@ -118,8 +121,8 @@ export default function FileTable({
               {!running && (
                 <button
                   className="small-button icon-small-button"
-                  title="Retirer de la liste"
-                  aria-label="Retirer de la liste"
+                  title={t.list.remove}
+                  aria-label={t.list.remove}
                   onClick={(e) => {
                     e.stopPropagation();
                     onRemove(f.path);
@@ -157,39 +160,42 @@ function rowState(file: FileItem, force: boolean): string {
   }
 }
 
-function frenchSummary(file: FileItem): string {
-  const french = file.plan?.tracks.filter((t) => t.french) ?? [];
+function frenchSummary(file: FileItem, t: Messages): string {
+  const french = file.plan?.tracks.filter((track) => track.french) ?? [];
   if (!file.plan) return "";
   if (french.length === 0) return "—";
-  return french.map((t) => (t.kind === "forced" ? "forcés" : "complets") + (t.action === "convert" ? " (SRT)" : "")).join(" + ");
+  return french
+    .map((track) => (track.kind === "forced" ? t.list.forced : t.list.full) + (track.action === "convert" ? " (SRT)" : ""))
+    .join(" + ");
 }
 
 function StatusText({ file, force }: { file: FileItem; force: boolean }) {
+  const t = useT();
   switch (file.status) {
     case "planning":
-      return <span className="muted">Lecture…</span>;
+      return <span className="muted">{t.status.reading}</span>;
     case "no_french":
-      return <span className="muted">Rien à faire</span>;
+      return <span className="muted">{t.status.nothingToDo}</span>;
     case "plan_error":
     case "error":
       return (
         <span className="error-text" title={file.error}>
-          {file.status === "error" ? "Échec" : "Illisible"}
+          {file.status === "error" ? t.status.failed : t.status.unreadable}
         </span>
       );
     case "queued":
-      return <span className="muted">En attente</span>;
+      return <span className="muted">{t.status.waiting}</span>;
     case "running":
       return (
-        <div className="progress" title={`${Math.round((file.progress ?? 0) * 100)} %`}>
+        <div className="progress" title={t.status.percent(Math.round((file.progress ?? 0) * 100))}>
           <div className="progress-bar" style={{ width: `${(file.progress ?? 0) * 100}%` }} />
         </div>
       );
     case "done":
-      return <span className="success-text">Terminé</span>;
+      return <span className="success-text">{t.status.done}</span>;
     case "cancelled":
-      return <span className="muted">Annulé</span>;
+      return <span className="muted">{t.common.cancelled}</span>;
     default:
-      return file.output?.exists && !force ? <span className="tag">Déjà traité</span> : <span>Prêt</span>;
+      return file.output?.exists && !force ? <span className="tag">{t.status.alreadyDone}</span> : <span>{t.status.ready}</span>;
   }
 }

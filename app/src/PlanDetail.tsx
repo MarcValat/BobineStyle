@@ -1,15 +1,17 @@
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import type { PlannedTrack } from "./api";
+import { useT } from "./i18n";
 import { fileName, languageName, type FileItem } from "./shared";
 
 /** Everything processing one file does: each subtitle track's fate, the
  * default track and why, the fonts. */
 export default function PlanDetail({ file }: { file: FileItem }) {
+  const t = useT();
   const plan = file.plan;
   return (
     <section className="panel detail-panel">
       <div className="panel-header">
-        <h2>Ce qui sera fait</h2>
+        <h2>{t.detail.title}</h2>
         {plan?.video_size && (
           <span className="detail-size">
             {plan.video_size[0]}×{plan.video_size[1]}
@@ -20,39 +22,39 @@ export default function PlanDetail({ file }: { file: FileItem }) {
         <div className="file-path" title={file.path}>
           {fileName(file.path)}
         </div>
-        {file.status === "planning" && <p className="muted">Lecture des pistes…</p>}
+        {file.status === "planning" && <p className="muted">{t.detail.readingTracks}</p>}
         {file.error && <p className="error">{file.error}</p>}
-        {plan && !plan.tracks.some((t) => t.french) && (
-          <p className="muted">
-            {plan.tracks.length === 0 ? "Aucune piste de sous-titres" : "Aucune piste de sous-titres française"} : ce fichier ne sera pas
-            traité.
-          </p>
+        {plan && !plan.tracks.some((track) => track.french) && (
+          <p className="muted">{plan.tracks.length === 0 ? t.detail.noSubtitles : t.detail.noFrench}</p>
         )}
-        {plan && plan.tracks.some((t) => t.french) && (
+        {plan && plan.tracks.some((track) => track.french) && (
           <>
             <p>
               {plan.audio ? (
                 <>
-                  Audio par défaut en <strong>{languageName(plan.audio.language)}</strong>
-                  {plan.audio.title && <span className="muted"> ({plan.audio.title})</span>} : sous-titres{" "}
-                  <strong>{plan.audio.french ? "forcés" : "complets"}</strong> par défaut.
+                  {t.detail.defaultAudio}
+                  <strong>{t.languages.inSentence(languageName(plan.audio.language))}</strong>
+                  {plan.audio.title && <span className="muted"> ({plan.audio.title})</span>}
+                  {t.detail.defaultSubtitles}
+                  <strong>{plan.audio.french ? t.detail.forced : t.detail.full}</strong>
+                  {t.detail.byDefault}
                 </>
               ) : (
-                <>Pas d'audio : sous-titres complets par défaut.</>
+                <>{t.detail.noAudio}</>
               )}
             </p>
             <div className="tracks-table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Piste</th>
-                    <th>Devient</th>
-                    <th>Marquage</th>
-                    <th>Traitement</th>
+                    <th>{t.detail.track}</th>
+                    <th>{t.detail.becomes}</th>
+                    <th>{t.detail.flags}</th>
+                    <th>{t.detail.processing}</th>
                   </tr>
                 </thead>
-                {plan.tracks.map((t) => (
-                  <TrackRows key={t.index} track={t} />
+                {plan.tracks.map((track) => (
+                  <TrackRows key={track.index} track={track} />
                 ))}
               </table>
             </div>
@@ -66,13 +68,13 @@ export default function PlanDetail({ file }: { file: FileItem }) {
         )}
         {file.output && file.status !== "no_french" && (
           <div className="output-line">
-            <span className="muted">Sortie</span>
+            <span className="muted">{t.detail.output}</span>
             <span className="file-path" title={file.output.path}>
               {file.output.path}
             </span>
             {file.output.exists && (
               <button className="link" onClick={() => revealItemInDir(file.output!.path)}>
-                Afficher
+                {t.common.show}
               </button>
             )}
           </div>
@@ -82,31 +84,30 @@ export default function PlanDetail({ file }: { file: FileItem }) {
   );
 }
 
-const ACTIONS = { restyle: "Style maison", convert: "SRT converti en ASS", copy: "Copiée telle quelle" };
-
 /** A track and its notes: one group, tinted as one in the table. */
-function TrackRows({ track: t }: { track: PlannedTrack }) {
-  const current = [languageName(t.language), t.codec, t.title && `« ${t.title} »`].filter(Boolean).join(" · ");
+function TrackRows({ track }: { track: PlannedTrack }) {
+  const t = useT();
+  const current = [languageName(track.language), track.codec, track.title && t.detail.titled(track.title)].filter(Boolean).join(" · ");
   return (
     <tbody>
-      <tr className={t.french ? "" : "dim"}>
+      <tr className={track.french ? "" : "dim"}>
         <td>
-          <span className="muted">#{t.index}</span> {current}
+          <span className="muted">#{track.index}</span> {current}
         </td>
-        <td>{t.french ? t.new_title : <span className="muted">inchangée</span>}</td>
+        <td>{track.french ? track.new_title : <span className="muted">{t.detail.unchanged}</span>}</td>
         <td>
-          {t.default && <span className="pill pill-accent">défaut</span>}
-          {t.forced && <span className="pill">forcés</span>}
+          {track.default && <span className="pill pill-accent">{t.detail.flagDefault}</span>}
+          {track.forced && <span className="pill">{t.detail.flagForced}</span>}
         </td>
         <td>
-          {ACTIONS[t.action]}
-          {t.dialogue_lines !== null && <span className="muted"> · {t.dialogue_lines} répliques</span>}
+          {t.detail.actions[track.action]}
+          {track.dialogue_lines !== null && <span className="muted"> · {t.detail.lines(track.dialogue_lines)}</span>}
         </td>
       </tr>
-      {t.notes.length > 0 && (
+      {track.notes.length > 0 && (
         <tr className="notes">
           <td colSpan={4}>
-            {t.notes.map((n) => (
+            {track.notes.map((n) => (
               <span key={n} className="note">
                 {n}
               </span>
@@ -119,18 +120,19 @@ function TrackRows({ track: t }: { track: PlannedTrack }) {
 }
 
 function Fonts({ attached, present }: { attached: string[]; present: string[] }) {
+  const t = useT();
   if (attached.length === 0 && present.length === 0) return null;
   return (
     <div className="fonts">
       {attached.length > 0 && (
         <p>
-          <span className="muted">Polices jointes : </span>
+          <span className="muted">{t.detail.attachedFonts}</span>
           {attached.join(", ")}
         </p>
       )}
       {present.length > 0 && (
         <p>
-          <span className="muted">Déjà dans le MKV : </span>
+          <span className="muted">{t.detail.presentFonts}</span>
           {present.join(", ")}
         </p>
       )}

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { t } from "./i18n";
 
 /** The engine's usual port, `bobinestyle serve`'s default: where a plain
  * browser on the dev server finds it. The app starts it there when it's
@@ -72,7 +73,7 @@ function waitForEngine(): Promise<void> {
         resolve();
       } else if (++attempts >= HEALTH_POLL_ATTEMPTS) {
         setStatus("unreachable");
-        reject(new Error("Le moteur ne répond pas."));
+        reject(new Error(t().startup.noAnswer));
       } else {
         setTimeout(poll, HEALTH_POLL_INTERVAL_MS);
       }
