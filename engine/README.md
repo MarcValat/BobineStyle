@@ -21,6 +21,7 @@ uv run bobinestyle serve                       # the app's local HTTP server (do
 
 - `batch`: `-o` another output folder, `-j` files at a time (2), `--force` redo files already in the output, `--plan` / `--details` show without writing.
 - The source file is never modified: outputs are written as `.part.mkv`, checked against the source (streams, codecs, duration, Dolby Vision), then renamed.
+- `serve` listens on `127.0.0.1:8758` only, out of other machines' reach, but this machine's other programs and the websites open in its browser could call it. So with `BOBINESTYLE_TOKEN` set, every request must carry it back in the `X-Bobine-Token` header (a WebSocket, which takes no header, in its address's `token` parameter), 401 otherwise; `/health` alone answers without it. The app makes a new one at each launch (`app/src-tauri/src/lib.rs`), `bobine-dev` in dev builds. Only the app's pages may read the answers (CORS): the Tauri window, the dev server (`http://localhost:1420`) and any origin `BOBINESTYLE_ORIGINS` adds (comma-separated). Run by hand without `BOBINESTYLE_TOKEN`, it asks for no token.
 
 ## How
 
