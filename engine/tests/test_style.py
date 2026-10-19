@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from test_roles import FANSUB, _line, _script, _style
+from test_srt import HAS_TREBUCHET
 
 from bobinestyle.ass import parse_ass
 from bobinestyle.style import apply_house_style
-from test_roles import FANSUB, _line, _script, _style
-from test_srt import HAS_TREBUCHET
 
 
 def _styles(text: str) -> dict[str, dict[str, str]]:
@@ -32,7 +32,10 @@ def test_positioned_script_keeps_its_grid():
     styles = _styles(result.text)
     default = styles["Default"]
     assert (default["fontname"], default["fontsize"], default["outline"], default["shadow"]) == (
-        "Trebuchet MS", "22", "0.83", "0.83",
+        "Trebuchet MS",
+        "22",
+        "0.83",
+        "0.83",
     )
     assert (default["marginl"], default["marginr"], default["marginv"], default["bold"]) == ("2", "2", "25", "-1")
     assert styles["Italique"]["italic"] == "-1"
@@ -56,7 +59,12 @@ def test_unpinned_script_takes_the_video_grid():
     assert info.play_res == (1280, 720)
     assert info.scaled_border_and_shadow
     default = _styles(result.text)["Default"]
-    assert (default["fontsize"], default["outline"], default["marginv"], default["marginl"]) == ("44", "1.67", "50", "4")
+    assert (default["fontsize"], default["outline"], default["marginv"], default["marginl"]) == (
+        "44",
+        "1.67",
+        "50",
+        "4",
+    )
     # Per-line margins follow the new grid, zero-padded as before.
     assert _events(result.text)[-1] == "Dialogue: 0,0:00:40.00,0:00:42.00,Default,,0200,0000,0000,,Décalé"
 
@@ -109,7 +117,9 @@ def test_ssa_alignment_written_back():
         "Style: Default,Arial,20,16777215,255,0,0,0,0,1,2,0,2,10,10,10,0,1\n"
         "Style: Up,Arial,20,16777215,255,0,0,0,0,1,2,0,6,10,10,10,0,1\n\n"
         "[Events]\nFormat: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text\n"
-        + "\n".join(f"Dialogue: Marked=0,0:00:{t:02d}.00,0:00:{t + 1:02d}.00,Default,,0,0,0,,A" for t in range(0, 20, 2))
+        + "\n".join(
+            f"Dialogue: Marked=0,0:00:{t:02d}.00,0:00:{t + 1:02d}.00,Default,,0,0,0,,A" for t in range(0, 20, 2)
+        )
         + "\nDialogue: Marked=0,0:00:30.00,0:00:31.00,Up,,0,0,0,,B\n"
     )
     result = apply_house_style(text, (640, 480))
@@ -135,4 +145,3 @@ def test_dash_blocks_are_centred_unless_already_placed():
     result = apply_house_style(text, (1920, 1080))
     margins = {e.text[:12]: e.fields["marginl"] for e in parse_ass(result.text).events if e.style == "TiretsDefault"}
     assert list(margins.values()) == ["0226", "0150", "0000"]
-

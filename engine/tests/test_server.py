@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from test_batch import series  # noqa: F401 - fixture
+from test_mux import mkv  # noqa: F401 - fixture
 
 from bobinestyle.ffmpeg_backend import resolve_ffmpeg, run_checked
 from bobinestyle.jobs import start_job
 from bobinestyle.server import app
-from test_batch import series  # noqa: F401 - fixture
-from test_mux import mkv  # noqa: F401 - fixture
 
 client = TestClient(app)
 
@@ -32,7 +32,10 @@ def test_health():
 def test_expand_folders_and_files(series: Path):  # noqa: F811
     files = client.post("/paths/expand", json={"paths": [str(series)], "recursive": True}).json()["files"]
     assert [Path(f).relative_to(series).as_posix() for f in files] == [
-        "S01/E01.mkv", "S01/E02.mkv", "S02/E01.mkv", "S02/E02.mkv",
+        "S01/E01.mkv",
+        "S01/E02.mkv",
+        "S02/E01.mkv",
+        "S02/E02.mkv",
     ]
     single = client.post("/paths/expand", json={"paths": [files[0], files[0], str(series / "nope.mkv")]}).json()
     assert single["files"] == [files[0]]

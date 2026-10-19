@@ -39,7 +39,9 @@ _CANCEL_POLL_S = 0.2
 _TOTAL_SIZE_RE = re.compile(rb"^total_size=(\d+)")
 
 
-def _run(cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None] | None = None) -> subprocess.CompletedProcess[bytes]:
+def _run(
+    cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None] | None = None
+) -> subprocess.CompletedProcess[bytes]:
     """Run ffmpeg, killing it (raising ``Cancelled``) as soon as the job
     running it is cancelled. With ``on_size``, ffmpeg reports how far it
     got (bytes written) as it goes: its output time is often unknown
@@ -158,7 +160,17 @@ def dump_attachments(path: str, folder: Path) -> list[Path]:
     before = set(folder.iterdir())
     # ffmpeg dumps before complaining that there is no output: ignore that.
     _run(
-        [resolve_ffmpeg(), "-hide_banner", "-loglevel", "quiet", "-y", "-dump_attachment:t", "", "-i", str(Path(path).resolve())],
+        [
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "quiet",
+            "-y",
+            "-dump_attachment:t",
+            "",
+            "-i",
+            str(Path(path).resolve()),
+        ],
         cwd=folder,
     )
     return sorted(set(folder.iterdir()) - before)
@@ -176,8 +188,20 @@ def extract_subtitle_text(path: str, track: int, codec: str) -> str:
         raise FFmpegError(f"Unsupported subtitle format: {codec}")
     proc = _run(
         [
-            resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-copyts", "-i", path,
-            "-map", f"0:s:{track}", "-c:s", "copy", "-f", fmt, "-",
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-copyts",
+            "-i",
+            path,
+            "-map",
+            f"0:s:{track}",
+            "-c:s",
+            "copy",
+            "-f",
+            fmt,
+            "-",
         ]
     )
     if proc.returncode != 0:

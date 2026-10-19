@@ -35,9 +35,7 @@ OVERLAP_YELLOW = "&H008CEEFA"  # RGB 250, 238, 140
 DEFAULT_PLAY_RES = (384, 288)
 
 # Tags whose values are in PlayRes pixels: a line using one pins the grid.
-_GEOMETRY_RE = re.compile(
-    r"\\(?:pos|move|org|i?clip)\s*\(|\\p[1-9]|\\fs\d|\\fsp|\\[xy]?bord|\\[xy]?shad|\\be|\\blur"
-)
+_GEOMETRY_RE = re.compile(r"\\(?:pos|move|org|i?clip)\s*\(|\\p[1-9]|\\fs\d|\\fsp|\\[xy]?bord|\\[xy]?shad|\\be|\\blur")
 
 _BORDER_TAG_RE = re.compile(r"\\[xy]?(?:bord|shad)")
 
@@ -126,7 +124,7 @@ def _event_line(event: Event, ratio_x: float, ratio_y: float) -> str:
 
 def _set_info(lines: list[str], doc: AssDocument, key: str, value: str) -> None:
     """Replace ``key`` in [Script Info] or add it at the section's end."""
-    start = next(i for i, l in enumerate(lines) if l.strip().lower() == "[script info]")
+    start = next(i for i, line in enumerate(lines) if line.strip().lower() == "[script info]")
     end = next((i for i in range(start + 1, len(lines)) if lines[i].strip().startswith("[")), len(lines))
     for i in range(start + 1, end):
         name, sep, _ = lines[i].partition(":")
@@ -162,7 +160,7 @@ def apply_house_style(text: str, video_size: tuple[int, int] | None) -> StyleRes
     changed = play_res != old
 
     lines = list(doc.lines)
-    if not any(l.strip().lower() == "[script info]" for l in lines):
+    if not any(line.strip().lower() == "[script info]" for line in lines):
         lines[:0] = ["[Script Info]", "ScriptType: v4.00+", ""]
         doc = parse_ass("\n".join(lines))
     # Reference-screen pixels -> video pixels (k) -> script units.

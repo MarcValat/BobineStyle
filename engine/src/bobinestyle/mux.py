@@ -227,7 +227,12 @@ def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None
                 else:
                     maps += ["-map", f"0:{stream.index}"]
                 if track and track.french:
-                    tags += [f"-metadata:s:{position}", "language=fre", f"-metadata:s:{position}", f"title={track.title}"]
+                    tags += [
+                        f"-metadata:s:{position}",
+                        "language=fre",
+                        f"-metadata:s:{position}",
+                        f"title={track.title}",
+                    ]
                     flags = [f for f, on in (("default", track.default), ("forced", track.forced)) if on]
                     tags += [f"-disposition:{position}", "+".join(flags) or "0"]
                 elif track and track.stream.default and any(t.default for t in p.tracks if t.french):
@@ -240,23 +245,44 @@ def mux(p: MuxPlan, output: str | Path, progress: Callable[[float], None] | None
                 filename = _unique(face.path.name, names)
                 attach += ["-attach", str(face.path)]
                 tags += [
-                    f"-metadata:s:{position}", f"mimetype={MIMETYPES[face.path.suffix.lower()]}",
-                    f"-metadata:s:{position}", f"filename={filename}",
+                    f"-metadata:s:{position}",
+                    f"mimetype={MIMETYPES[face.path.suffix.lower()]}",
+                    f"-metadata:s:{position}",
+                    f"filename={filename}",
                 ]
             # -copyts: the restyled ASS were extracted with the container's
             # timestamps; without it ffmpeg would move the MKV by minus its
             # start time (AAC priming, B-frames) but not the standalone ASS.
             run_checked(
                 [
-                    resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y", "-copyts", *inputs,
-                    *maps, *attach, "-map_metadata", "0", "-map_chapters", "0", "-metadata", "title=",
+                    resolve_ffmpeg(),
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-copyts",
+                    *inputs,
+                    *maps,
+                    *attach,
+                    "-map_metadata",
+                    "0",
+                    "-map_chapters",
+                    "0",
+                    "-metadata",
+                    "title=",
                     # Strict time order: by default ffmpeg stops waiting
                     # for a stream once others are 10 s ahead, and the
                     # sparse subtitles read from their own files then land
                     # in clusters out of order (one at 3:19 before one at
                     # 0:14). VLC skips those blocks: the lines never show.
-                    "-max_interleave_delta", "0",
-                    *tags, "-c", "copy", "-f", "matroska", str(partial),
+                    "-max_interleave_delta",
+                    "0",
+                    *tags,
+                    "-c",
+                    "copy",
+                    "-f",
+                    "matroska",
+                    str(partial),
                 ],
                 on_size=_progress_reporter(p.source, progress),
             )
@@ -315,4 +341,6 @@ def verify(p: MuxPlan, output: str) -> None:
     except (MatroskaError, OSError) as exc:
         raise MuxError(f"fichier écrit illisible : {exc}") from exc
     if backwards:
-        raise MuxError(f"{backwards} groupe(s) de blocs hors de l'ordre du temps : certains lecteurs n'afficheraient pas tout")
+        raise MuxError(
+            f"{backwards} groupe(s) de blocs hors de l'ordre du temps : certains lecteurs n'afficheraient pas tout"
+        )

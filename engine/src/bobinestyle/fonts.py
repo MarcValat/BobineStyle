@@ -79,7 +79,7 @@ def read_font_names(path: Path) -> list[tuple[set[str], set[str]]]:
         else:
             offsets = (0,)
         return [_names_at(data, o) for o in offsets]
-    except (OSError, struct.error):
+    except OSError, struct.error:
         return []
 
 

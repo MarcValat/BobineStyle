@@ -6,12 +6,12 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from test_roles import _line, _script, _style
 
 from bobinestyle.ass import parse_ass
 from bobinestyle.ffmpeg_backend import extract_subtitle_text, probe_streams, resolve_ffmpeg, subtitle_streams
 from bobinestyle.fonts import faces_for, system_fonts
-from bobinestyle.models import SubtitleStreamInfo
-from bobinestyle.models import StreamInfo
+from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 from bobinestyle.mux import (
     FORCED_TITLE,
     FULL_TITLE,
@@ -24,7 +24,6 @@ from bobinestyle.mux import (
     plan,
     verify,
 )
-from test_roles import _line, _script, _style
 
 FULL = _script(
     [_style("Default"), _style("Italique", italic=1)],
@@ -45,9 +44,25 @@ def _ff(*args: str) -> None:
 
 def _pts_ms(path: Path, selector: str) -> list[int]:
     out = subprocess.run(
-        [resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-copyts", "-i", str(path),
-         "-map", selector, "-c", "copy", "-f", "framecrc", "-"],
-        capture_output=True, text=True, check=True,
+        [
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-copyts",
+            "-i",
+            str(path),
+            "-map",
+            selector,
+            "-c",
+            "copy",
+            "-f",
+            "framecrc",
+            "-",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout
     return [int(line.split(",")[2]) for line in out.splitlines() if not line.startswith("#")]
 
@@ -61,20 +76,74 @@ def mkv(tmp_path: Path, request: pytest.FixtureRequest) -> Path:
     (tmp_path / "signs.ass").write_text(SIGNS, encoding="utf-8")
     subs = ["-i", str(tmp_path / "en.srt"), "-i", str(tmp_path / "full.ass"), "-i", str(tmp_path / "signs.ass")]
     tags = [
-        "-metadata:s:s:0", "language=eng", "-disposition:s:0", "default",
-        "-metadata:s:s:1", "language=fre", "-metadata:s:s:1", "title=French",
-        "-metadata:s:s:2", "language=fre", "-metadata:s:s:2", "title=French Signs",
+        "-metadata:s:s:0",
+        "language=eng",
+        "-disposition:s:0",
+        "default",
+        "-metadata:s:s:1",
+        "language=fre",
+        "-metadata:s:s:1",
+        "title=French",
+        "-metadata:s:s:2",
+        "language=fre",
+        "-metadata:s:s:2",
+        "title=French Signs",
     ]
     video = ["-f", "lavfi", "-i", "color=c=black:s=128x72:r=5:d=45"]
     out = tmp_path / "in.mkv"
     if request.param == "negative_start":
-        _ff(*video, "-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono", *subs,
-            "-map", "0", "-map", "1", "-map", "2", "-map", "3", "-map", "4", "-t", "45",
-            "-c:v", "mpeg4", "-c:a", "aac", "-c:s", "copy", *tags, str(out))
+        _ff(
+            *video,
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=8000:cl=mono",
+            *subs,
+            "-map",
+            "0",
+            "-map",
+            "1",
+            "-map",
+            "2",
+            "-map",
+            "3",
+            "-map",
+            "4",
+            "-t",
+            "45",
+            "-c:v",
+            "mpeg4",
+            "-c:a",
+            "aac",
+            "-c:s",
+            "copy",
+            *tags,
+            str(out),
+        )
     else:
-        _ff("-copyts", "-itsoffset", "0.25", *video, *subs,
-            "-map", "0", "-map", "1", "-map", "2", "-map", "3", "-t", "45",
-            "-c:v", "mpeg4", "-c:s", "copy", *tags, str(out))
+        _ff(
+            "-copyts",
+            "-itsoffset",
+            "0.25",
+            *video,
+            *subs,
+            "-map",
+            "0",
+            "-map",
+            "1",
+            "-map",
+            "2",
+            "-map",
+            "3",
+            "-t",
+            "45",
+            "-c:v",
+            "mpeg4",
+            "-c:s",
+            "copy",
+            *tags,
+            str(out),
+        )
     return out
 
 
@@ -147,7 +216,6 @@ def test_french_detection():
     assert _is_french(_sub(None, "VF"), True)
     assert not _is_french(_sub(None), True)  # undetermined beside a real French track
     assert _is_french(_sub(None), False)  # the only candidate, as the old script assumed
-
 
 
 def _tracks(*kinds: str) -> list[TrackPlan]:

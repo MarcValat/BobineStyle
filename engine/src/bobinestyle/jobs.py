@@ -50,7 +50,12 @@ class Job:
         """New messages since index ``since``, the new cursor, and the job's current state."""
         with self._lock:
             return (
-                list(self.messages[since:]), len(self.messages), self.progress, self.status, self.result, self.error
+                list(self.messages[since:]),
+                len(self.messages),
+                self.progress,
+                self.status,
+                self.result,
+                self.error,
             )
 
     def finish(self, result: Any) -> None:

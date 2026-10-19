@@ -174,17 +174,17 @@ def srt_to_ass(cues: list[Cue], video_size: tuple[int, int] | None) -> str:
             italic = line.role is Role.DASHES_ITALIC
             line.margin_l = centring_margin(_plain_lines(line.text), FONT, size, italic, width, MARGIN_SIDE * k)
 
-    used = [Role.DIALOGUE] + [r for r in STYLE_NAMES if r is not Role.DIALOGUE and any(l.role is r for l in lines)]
+    used = [Role.DIALOGUE] + [
+        r for r in STYLE_NAMES if r is not Role.DIALOGUE and any(line.role is r for line in lines)
+    ]
     styles = []
     for role in used:
         fields = house_fields(role, k, k)
-        styles.append(
-            "Style: " + ",".join([STYLE_NAMES[role]] + [fields[name] for name in _style_field_names()[1:]])
-        )
+        styles.append("Style: " + ",".join([STYLE_NAMES[role]] + [fields[name] for name in _style_field_names()[1:]]))
     events = [
-        f"Dialogue: 0,{_ass_time(l.cue.start)},{_ass_time(l.cue.end)},{STYLE_NAMES[l.role]},,"
-        f"{l.margin_l:04d},0000,0000,,{l.text}"
-        for l in lines
+        f"Dialogue: 0,{_ass_time(line.cue.start)},{_ass_time(line.cue.end)},{STYLE_NAMES[line.role]},,"
+        f"{line.margin_l:04d},0000,0000,,{line.text}"
+        for line in lines
     ]
     return "\n".join(
         [
