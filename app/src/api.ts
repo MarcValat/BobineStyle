@@ -104,11 +104,7 @@ export class JobCancelled extends Error {
 /** A job as a promise: `onProgress` gets how far it got (0 to 1), `onStart`
  * its id (to cancel it); settles with its result, its error, or
  * JobCancelled. An unexpected close (engine crash) is an error. */
-export function runJob<T>(
-  jobId: Promise<string>,
-  onProgress: (value: number) => void,
-  onStart?: (id: string) => void,
-): Promise<T> {
+export function runJob<T>(jobId: Promise<string>, onProgress: (value: number) => void, onStart?: (id: string) => void): Promise<T> {
   return new Promise((resolve, reject) => {
     Promise.all([jobId, getEngineUrl(), getEngineToken()])
       .then(([id, url, token]) => {

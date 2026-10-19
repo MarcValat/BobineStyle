@@ -87,9 +87,7 @@ export default function App() {
     if (batch.length === 0) return;
     cancelled.current = false;
     setRunning(true);
-    setFiles((fs) =>
-      fs.map((f) => (batch.some((b) => b.path === f.path) ? { ...f, status: "queued", progress: 0, error: undefined } : f)),
-    );
+    setFiles((fs) => fs.map((f) => (batch.some((b) => b.path === f.path) ? { ...f, status: "queued", progress: 0, error: undefined } : f)));
     const muxing = limiter(MUXING);
     await Promise.all(
       batch.map(({ path, output }) =>
@@ -193,8 +191,11 @@ export default function App() {
             />
             {folder === null ? (
               <p className="output-current">
-                Dans un dossier « Output » à côté des originaux, sous le même nom
-                <InfoTip>Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais modifiés.</InfoTip>
+                Dans un dossier « Output » à côté des originaux, sous le même nom
+                <InfoTip>
+                  Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais
+                  modifiés.
+                </InfoTip>
               </p>
             ) : (
               <div className="output-folder">
@@ -239,8 +240,8 @@ export default function App() {
               <h2>
                 Fichiers{" "}
                 <InfoTip>
-                  Chaque MKV ajouté est lu : ses pistes de sous-titres françaises, ce qu'elles deviendront et les polices à joindre. Clique sur une ligne
-                  pour voir le détail en dessous, puis lance « Appliquer le style ».
+                  Chaque MKV ajouté est lu : ses pistes de sous-titres françaises, ce qu'elles deviendront et les polices à joindre. Clique
+                  sur une ligne pour voir le détail en dessous, puis lance « Appliquer le style ».
                 </InfoTip>
               </h2>
               <button

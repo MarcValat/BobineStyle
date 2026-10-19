@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import "./Dialog.css";
 
 /** Escape runs `onEscape` (the latest one, however often it changes). */
-export function useEscape(onEscape: () => void): void {
+function useEscape(onEscape: () => void): void {
   const latest = useRef(onEscape);
   latest.current = onEscape;
   useEffect(() => {
@@ -51,11 +51,7 @@ export function Dialog({
       aria-labelledby={labelledBy}
       onClick={closeOnBackdrop ? onClose : undefined}
     >
-      <div
-        ref={panelRef}
-        className={`dialog-panel${fill ? " dialog-panel-fill" : ""} ${className}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div ref={panelRef} className={`dialog-panel${fill ? " dialog-panel-fill" : ""} ${className}`} onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
     </div>

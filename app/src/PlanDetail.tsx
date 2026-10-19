@@ -24,7 +24,8 @@ export default function PlanDetail({ file }: { file: FileItem }) {
         {file.error && <p className="error">{file.error}</p>}
         {plan && !plan.tracks.some((t) => t.french) && (
           <p className="muted">
-            {plan.tracks.length === 0 ? "Aucune piste de sous-titres" : "Aucune piste de sous-titres française"} : ce fichier ne sera pas traité.
+            {plan.tracks.length === 0 ? "Aucune piste de sous-titres" : "Aucune piste de sous-titres française"} : ce fichier ne sera pas
+            traité.
           </p>
         )}
         {plan && plan.tracks.some((t) => t.french) && (

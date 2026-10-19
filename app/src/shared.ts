@@ -1,7 +1,7 @@
 import type { Output, Plan } from "./api";
 
 /** Where one file stands, from being read to being written. */
-export type FileStatus =
+type FileStatus =
   | "planning" // tracks being read
   | "ready" // French subtitles found, can be processed
   | "no_french" // nothing to do
@@ -71,7 +71,7 @@ export function limiter(n: number) {
       queue.shift()!();
     }
   };
-  return <T,>(fn: () => Promise<T>): Promise<T> =>
+  return <T>(fn: () => Promise<T>): Promise<T> =>
     new Promise<T>((resolve, reject) => {
       queue.push(() =>
         fn()
