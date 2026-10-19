@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { cancelJob, expandPaths, JobCancelled, type MuxResult, planFile, planOutputs, runJob, startMux } from "./api";
+import { cancelJob, expandPaths, JobCancelled, type MuxResult, planFile, planOutputs, runJob, setEngineLanguage, startMux } from "./api";
 import { EngineStatusBadge } from "./EngineStatus";
 import { DropOverlay, useFileDrop } from "./FileDrop";
 import FileTable from "./FileTable";
-import { useT } from "./i18n";
+import { useLanguage, useT } from "./i18n";
 import { InfoTip } from "./InfoTip";
 import { OptionsButton } from "./Options";
 import PlanDetail from "./PlanDetail";
@@ -29,6 +29,13 @@ export default function App() {
   const cancelled = useRef(false);
   const filesRef = useRef(files);
   filesRef.current = files;
+
+  // The engine's messages (plan notes, job logs, errors) in the UI's
+  // language whenever it changes (engine.ts sends it once the engine is up).
+  const language = useLanguage();
+  useEffect(() => {
+    setEngineLanguage(language).catch(() => {});
+  }, [language]);
 
   const update = useCallback((path: string, patch: Partial<FileItem>) => {
     setFiles((fs) => fs.map((f) => (f.path === path ? { ...f, ...patch } : f)));

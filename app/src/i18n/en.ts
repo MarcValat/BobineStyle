@@ -72,7 +72,8 @@ export const en: Messages = {
     nextToText: "In an “Output” folder next to the originals, under the same name",
     nextToHint: "Each processed file keeps its name, in an “Output” folder next to the original. The originals are never changed.",
     redo: "Redo files already processed",
-    summary: (files, toDo, done) => `${files} file${files > 1 ? "s" : ""} · ${toDo} to process` + (done > 0 ? ` · ${done} processed` : ""),
+    summary: (files, toDo, done) =>
+      `${files} file${files === 1 ? "" : "s"} · ${toDo} to process` + (done > 0 ? ` · ${done} processed` : ""),
     running: (done, total) => `Processing… ${done} / ${total}`,
     apply: (n) => `Apply the style${n > 0 ? ` (${n})` : ""}`,
   },
@@ -124,7 +125,7 @@ export const en: Messages = {
     flagDefault: "default",
     flagForced: "forced",
     actions: { restyle: "House style", convert: "SRT converted to ASS", copy: "Copied as is" },
-    lines: (n) => `${n} line${n > 1 ? "s" : ""}`,
+    lines: (n) => `${n} line${n === 1 ? "" : "s"}`,
     titled: (title) => `“${title}”`,
     attachedFonts: "Fonts attached: ",
     presentFonts: "Already in the MKV: ",

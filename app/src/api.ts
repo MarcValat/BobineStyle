@@ -77,6 +77,15 @@ export async function planOutputs(sources: string[], folder: string | null): Pro
   return (await (await postJson("/outputs", { sources, folder })).json()).outputs;
 }
 
+/** The language of the engine's messages (plan notes, job logs, errors). */
+export async function setEngineLanguage(language: string): Promise<void> {
+  await engineFetch(`/language`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ language }),
+  });
+}
+
 export async function planFile(path: string): Promise<Plan> {
   return (await postJson("/plan", { path })).json();
 }

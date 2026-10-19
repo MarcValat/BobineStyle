@@ -66,6 +66,11 @@ export function useT(): Messages {
   return CATALOGS[resolve(choice)];
 }
 
+/** The language in use (the choice, "system" resolved). */
+export function useLanguage(): Language {
+  return resolve(useContext(LanguageContext).choice);
+}
+
 /** The language setting and its setter, for Options. */
 export function useLanguageChoice(): [LanguageChoice, (choice: LanguageChoice) => void] {
   const { choice, setChoice } = useContext(LanguageContext);
