@@ -6,31 +6,49 @@ export const fr = {
     close: "Fermer",
     retry: "Réessayer",
     help: "Aide",
+    error: "Erreur",
     httpError: (status: number) => `Erreur ${status}`,
     cancelled: "Annulé",
     cancelExport: "Annuler l'export",
+    remove: "Retirer",
     removeAll: "Tout retirer",
-    add: "+ Ajouter",
+    removeAllQuestion: "Retirer tous les fichiers ?",
+    keep: "Garder",
+    foldList: "Replier la liste",
+    unfoldList: "Déplier la liste",
     change: "Changer…",
-    show: "Afficher",
-    engineStopped: "Le moteur s'est arrêté pendant la tâche.",
+    log: (n: number) => `Journal (${n})`,
+    connectionLost: "Connexion interrompue avant la fin du traitement (le moteur a-t-il planté ?).",
+    websocketLost: "Connexion WebSocket perdue.",
+  },
+
+  window: {
+    minimize: "Réduire",
+    maximize: "Agrandir",
+    restore: "Restaurer",
+    close: "Fermer",
   },
 
   startup: {
+    ready: "Moteur prêt",
     starting: "Démarrage du moteur…",
-    unreachable: "Le moteur d'analyse ne répond pas. Réessaie, ou redémarre l'application.",
+    unreachable: "Le moteur ne répond pas. Réessaie, ou redémarre l'application.",
     unreachableShort: "Le moteur ne répond pas",
     noAnswer: "Le moteur ne répond pas.",
   },
 
   options: {
-    title: "Options",
+    title: "Paramètres",
+    version: (version: string) => `Version actuelle : ${version}.`,
     theme: "Thème",
     themes: { system: "Système", light: "Clair", dark: "Sombre" },
     themeHint: "« Système » suit le thème clair ou sombre de ton système.",
     language: "Langue",
     systemLanguage: "Système",
     languageHint: "« Système » suit la langue de ton système : français s'il est en français, anglais sinon.",
+    uiScale: "Taille de l'interface",
+    uiScaleHint: "Agrandit ou réduit toute l'interface : textes, boutons et listes.",
+    uiScaleLimited: (percent: number) => `Réduite à ${percent} % : l'écran n'a pas la place pour plus.`,
     updates: "Mises à jour",
     checkUpdates: "Vérifier au démarrage",
     updatesHint: "Au lancement, l'application demande à GitHub si une nouvelle version existe ; rien n'est installé sans ton accord.",
@@ -51,49 +69,76 @@ export const fr = {
     restart: "Redémarrer l'application",
   },
 
+  batch: {
+    moveUp: "Monter",
+    moveDown: "Descendre",
+  },
+
+  empty: {
+    title: "Un style propre et lisible pour les sous-titres de tes MKV",
+    hint: "Un fichier ou toute une série : Bobine Style restyle les sous-titres français et nomme les pistes, sans rien réencoder.",
+    drop: "Glisse des MKV ou un dossier ici, ou clique pour parcourir",
+    dropHint: "Une saison, une série entière : les fichiers déjà faits sont sautés.",
+    styleTitle: "Le style maison",
+    styleHint:
+      "Trebuchet MS gras, contour et ombre, et une variante pour chaque cas : italique, haut de l'écran, répliques à tirets, paroles simultanées.",
+    sizeTitle: "La bonne taille partout",
+    sizeHint: "Même taille à l'écran en 720p qu'en 4K, en 16:9, en scope ou en 4:3. Les panneaux ne bougent pas.",
+    tracksTitle: "Des pistes bien nommées",
+    tracksHint: "« Français », « Français (forcé) », la bonne par défaut selon l'audio, et les polices jointes au MKV.",
+  },
+
   add: {
-    title: "Ajouter",
-    files: "Ajouter des MKV…",
+    files: "Ajouter des MKV",
     folder: "Ajouter un dossier…",
     recursive: "Inclure les sous-dossiers (saisons)",
     noMkv: "Aucun fichier MKV là-dedans.",
     mkvFilter: "Vidéos MKV",
     folderDialog: "Ajouter un dossier",
-    dropToAdd: "Ajouter à la liste",
-    dropRecursive: "Les dossiers sont parcourus avec leurs sous-dossiers",
-    dropBlocked: "Attends la fin du traitement",
+    dropToAdd: "Déposer pour ajouter à la liste",
+    dropRecursive: "Un dossier ajoute ses MKV, ceux de ses sous-dossiers aussi",
+    dropBlocked: "Ajout impossible pendant un traitement : attends sa fin.",
+    addMore: "+ Ajouter des MKV",
+    dropMore: "ou glisse-les, ou un dossier, sur la fenêtre",
+    addHint: "Ajouter des MKV à la liste",
   },
 
   output: {
     title: "Sortie",
+    label: "Sortie :",
+    edit: "Modifier…",
     where: "Où écrire les fichiers traités",
     nextTo: "À côté",
     otherFolder: "Autre dossier",
     folderDialog: "Dossier de sortie",
+    nextToShort: "dossier « Output » à côté des originaux",
     nextToText: "Dans un dossier « Output » à côté des originaux, sous le même nom",
     nextToHint:
-      "Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original. Les originaux ne sont jamais modifiés.",
+      "Chaque fichier traité garde son nom, dans un dossier « Output » à côté de l'original, ou dans le dossier choisi. Les originaux ne sont jamais modifiés.",
     redo: "Refaire les fichiers déjà traités",
-    summary: (files: number, toDo: number, done: number) =>
-      `${files} fichier${files > 1 ? "s" : ""} · ${toDo} à traiter` + (done > 0 ? ` · ${done} traité${done > 1 ? "s" : ""}` : ""),
-    running: (done: number, total: number) => `Traitement… ${done} / ${total}`,
-    apply: (n: number) => `Appliquer le style${n > 0 ? ` (${n})` : ""}`,
+    summary: ({ files, toDo, done, already, nothing, failed }: Counts) =>
+      [
+        `${files} fichier${files > 1 ? "s" : ""}`,
+        `${toDo} à traiter`,
+        done > 0 && `${done} terminé${done > 1 ? "s" : ""}`,
+        already > 0 && `${already} déjà traité${already > 1 ? "s" : ""}`,
+        nothing > 0 && `${nothing} sans sous-titres français`,
+        failed > 0 && `${failed} échec${failed > 1 ? "s" : ""}`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    running: (done: number, total: number) => `Application · ${done}/${total}`,
+    apply: (n: number) => (n > 0 ? `Appliquer le style · ${n} fichier${n > 1 ? "s" : ""}` : "Appliquer le style"),
   },
 
   list: {
-    title: "Fichiers",
-    hint: "Chaque MKV ajouté est lu : ses pistes de sous-titres françaises, ce qu'elles deviendront et les polices à joindre. Clique sur une ligne pour voir le détail en dessous, puis lance « Appliquer le style ».",
-    file: "Fichier",
-    french: "Sous-titres français",
-    fonts: "Polices",
-    state: "État",
-    emptyTitle: "Glisse des fichiers ou des dossiers ici",
-    emptyHint: "Des MKV, ou le dossier d'une saison ou d'une série : leurs sous-titres français prendront le style maison.",
+    count: (n: number) => `Fichiers · ${n}`,
     forced: "forcés",
     full: "complets",
+    noFrench: "aucun sous-titre français",
+    fonts: (n: number) => `${n} police${n > 1 ? "s" : ""}`,
     redo: "Refaire ce fichier",
     openFolder: "Ouvrir le dossier du fichier écrit",
-    remove: "Retirer de la liste",
   },
 
   status: {
@@ -109,10 +154,17 @@ export const fr = {
   },
 
   detail: {
-    title: "Ce qui sera fait",
     readingTracks: "Lecture des pistes…",
+    subtitles: (list: string) => `sous-titres : ${list}`,
+    noSubtitlesShort: "aucun sous-titre",
     noSubtitles: "Aucune piste de sous-titres : ce fichier ne sera pas traité.",
     noFrench: "Aucune piste de sous-titres française : ce fichier ne sera pas traité.",
+    openFolder: "Ouvrir le dossier",
+    applyFile: "Appliquer à ce fichier",
+    running: (percent: number) => `Application en cours · ${percent} %`,
+    doneRun: "Terminé · écrit et vérifié",
+    failedRun: (error: string) => `Échec : ${error} L'original n'a pas été touché.`,
+    cancelledRun: "Annulé : rien n'a été écrit.",
     // "Audio par défaut en japonais (VO) : sous-titres complets par défaut."
     defaultAudio: "Audio par défaut en ",
     defaultSubtitles: " : sous-titres ",
@@ -120,6 +172,10 @@ export const fr = {
     forced: "forcés",
     full: "complets",
     noAudio: "Pas d'audio : sous-titres complets par défaut.",
+    style: "Style appliqué",
+    houseStyle: "Style maison",
+    houseStyleSummary: "Trebuchet MS gras 66 px · blanc, contour et ombre noirs · 75 px du bas",
+    scaled: (width: number, height: number) => `Tailles pour un écran 1080p, adaptées à cette vidéo (${width}×${height})`,
     track: "Piste",
     becomes: "Devient",
     flags: "Marquage",
@@ -130,9 +186,10 @@ export const fr = {
     actions: { restyle: "Style maison", convert: "SRT converti en ASS", copy: "Copiée telle quelle" },
     lines: (n: number) => `${n} réplique${n > 1 ? "s" : ""}`,
     titled: (title: string) => `« ${title} »`,
-    attachedFonts: "Polices jointes : ",
-    presentFonts: "Déjà dans le MKV : ",
+    attachedFonts: "Polices jointes",
+    presentFonts: "Déjà dans le MKV",
     output: "Sortie",
+    written: "Écrit",
   },
 
   languages: {
@@ -155,5 +212,15 @@ export const fr = {
     } as Record<string, string>,
   },
 };
+
+/** The footer's counts (output.summary). */
+interface Counts {
+  files: number;
+  toDo: number;
+  done: number;
+  already: number;
+  nothing: number;
+  failed: number;
+}
 
 export type Messages = typeof fr;

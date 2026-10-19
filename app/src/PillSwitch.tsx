@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 /** A choice between a few options, all visible, a selection pill sliding
- * under the picked one (from Bobine Subs): where the files are written.
- * `className` adds a look (`pill-switch-wide`: the whole width). */
-export function PillSwitch<T extends string>({
+ * under the picked one (as in Bobine Subs): Batch's sub-modes. `className`
+ * adds a look (the Batch drawer's). */
+export function PillSwitch<T extends string | number>({
   options,
   value,
   onChange,

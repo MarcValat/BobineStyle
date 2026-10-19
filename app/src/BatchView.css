@@ -1,0 +1,336 @@
+/* A mode's workspace fits the window: settings on top, the list and the
+   detail (Workspace.css) taking the height left, actions at the bottom.
+   Only the list scrolls. */
+.batch-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  overflow: hidden;
+}
+
+.batch-config {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6em 0.9em;
+  flex-wrap: wrap;
+}
+
+.batch-config .config-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.9em;
+}
+
+.batch-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  padding-top: 0.7em;
+  padding-bottom: 0.7em;
+}
+
+.batch-progress {
+  flex: 1 1 auto;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.batch-status-pending {
+  color: var(--text-muted);
+}
+
+.batch-status-running {
+  color: var(--accent-text);
+}
+
+.batch-status-done {
+  color: var(--success-text);
+}
+
+.batch-status-error {
+  color: var(--danger);
+}
+
+.batch-status-cancelled {
+  color: var(--text-muted);
+}
+
+/* "Vérifier toutes les pistes" (a Dialog): both columns of files side by side. */
+.batch-tracks-panel {
+  max-width: 1100px;
+}
+
+/* Stacks to one column on a narrow window instead of squeezing both
+   side-by-side unreadably -- the app window is user-resizable, this modal
+   isn't a fixed-size dialog. */
+.batch-tracks-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5em;
+  /* Same-shape bug as .batch-filename hit earlier: a nowrap+ellipsis
+     paragraph's implicit minimum width is its full, untruncated text
+     width, and a grid item's default min-width: auto respects that --
+     without this, the filename below never actually gets to truncate, it
+     just forces this whole grid (and the modal panel it's in) wider than
+     the window instead. */
+  min-width: 0;
+}
+
+.batch-tracks-side {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .batch-tracks-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.batch-tracks-side h3 {
+  margin: 0 0 0.6em;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.batch-tracks-file {
+  margin-bottom: 1em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid var(--border);
+}
+
+.batch-tracks-file:last-child {
+  border-bottom: none;
+}
+
+.batch-tracks-filename {
+  margin: 0 0 0.4em;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-tracks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.batch-tracks-table th {
+  padding: 0.3em 0.5em;
+  text-align: left;
+  font-size: 0.75em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+}
+
+.batch-tracks-table td {
+  padding: 0.3em 0.5em;
+  border-bottom: 1px solid var(--border);
+}
+
+/* A table's radio buttons and checkboxes without the browser's margins
+   (uneven: 5px left, 3px right), exactly under their column's title. */
+td > input[type="radio"],
+td > input[type="checkbox"] {
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* Radio buttons and checkboxes centered under their header. */
+.batch-tracks-table .track-pick {
+  text-align: center;
+}
+
+.batch-target-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* A button showing an icon only: the icon at its exact center. Whole-pixel
+   sizes, the button's and the icon's differing by an even number: the icon
+   lands on the same pixels as the button (a half-pixel offset blurs it to
+   one side once drawn). */
+.icon-small-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.small-button.icon-small-button {
+  height: 24px;
+  min-width: 28px;
+  padding: 0;
+}
+
+.icon-small-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Where the exports go, left of the progress line. */
+.batch-output {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.9em;
+}
+
+.batch-output-label {
+  color: var(--text-muted);
+}
+
+/* Monospace only for an actual folder path, not "à côté des originaux". */
+.batch-output-path {
+  font-family: var(--font-mono);
+}
+
+.batch-output-dir {
+  min-width: 0;
+  max-width: 22em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-output button {
+  flex: 0 0 auto;
+}
+
+/* "· Opus · noms automatiques": what the export options say, after the folder. */
+.batch-output-format {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+/* The export options (exportOptions.tsx): the folder, the codec, the names. */
+.export-options-panel {
+  max-width: 520px;
+}
+
+.export-options-folder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.export-options-folder .batch-output-dir {
+  flex: 1 1 100%;
+  max-width: none;
+}
+
+/* A custom name per language: its name, then the field. */
+.export-options-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9em;
+}
+
+.export-options-name span {
+  flex: 0 0 auto;
+  min-width: 9em;
+}
+
+.export-options-name input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.batch-footer {
+  flex-wrap: wrap;
+}
+
+/* "Changer": a multitrack file's retimed subtitles, ticked by hand. */
+.batch-choice-panel {
+  max-width: 640px;
+}
+
+/* The subtitle tracks retimed with each corrected track. */
+.batch-choice-subs {
+  margin-top: 1em;
+}
+
+.batch-choice-subs h3 {
+  margin: 0 0 0.5em;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.batch-choice-subs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3em 0.9em;
+  font-size: 0.9em;
+}
+
+.batch-choice-subs-row + .batch-choice-subs-row {
+  margin-top: 0.4em;
+}
+
+.batch-choice-subs-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+/* "Refaire les fichiers déjà traités", in the footer. */
+.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-size: 0.9em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The main button while it runs: "Application · 4/9", filling up as the
+   files get done. */
+.primary-button.run-progress:disabled {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent-strong) 22%, var(--surface-alt));
+  color: var(--text);
+}
+
+.run-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--gradient);
+  opacity: 0.55;
+  transition: width 0.3s ease;
+}
+
+.run-progress-label {
+  position: relative;
+}

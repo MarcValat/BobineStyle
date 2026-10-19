@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { FilmDropIcon } from "./icons";
 
-/** An empty region's invitation: a dashed zone with the film icon, saying
- * what to drop there; a click does the same as the matching button. */
+/** An empty region's invitation (as in Bobine Subs): a dashed zone with the
+ * film icon, saying what to drop there; a click does the same as the
+ * matching button. */
 export function DropZone({
   title,
   children,

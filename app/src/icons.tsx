@@ -22,7 +22,7 @@ export function DownloadIcon() {
   );
 }
 
-/** A film strip with an arrow into it: something to drop here. */
+/** A film strip with an arrow down into it: drop a file here. */
 export function FilmDropIcon() {
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -31,6 +31,15 @@ export function FilmDropIcon() {
       <path d="M9 12h6M9 19h6M9 26h6M9 33h6M33 12h6M33 19h6M33 26h6M33 33h6" />
       <path d="M24 15v15" />
       <path d="M19 25l5 5 5-5" />
+    </svg>
+  );
+}
+
+/** A cross: close a panel. */
+export function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
 }
@@ -50,6 +59,80 @@ export function FolderIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+
+/** An "A" on a baseline: the style (the empty workspace's first card). */
+export function FontIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20h16" />
+      <path d="M6 16l6-12 6 12" />
+      <path d="M8.5 11h7" />
+    </svg>
+  );
+}
+
+/** A screen with a subtitle line: the right size on every video. */
+export function ScreenIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M8 15h8" />
+    </svg>
+  );
+}
+
+/** A tag: the tracks named and flagged. */
+export function TagIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 12l-8 8-9-9V3h8z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+    </svg>
+  );
+}
+
+/** Two chevrons to the left: fold a column away (turned around to unfold). */
+export function FoldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M11 17l-5-5 5-5" />
+      <path d="M18 17l-5-5 5-5" />
+    </svg>
+  );
+}
+
+/** An arrow up: move a row up the list. */
+export function ArrowUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5" />
+      <path d="M6 11l6-6 6 6" />
+    </svg>
+  );
+}
+
+/** An arrow down: move a row down the list. */
+export function ArrowDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 5v14" />
+      <path d="M6 13l6 6 6-6" />
+    </svg>
+  );
+}
+
+/** A triangle with "!": something to check (a flagged file, a weak
+ * segment, an engine that doesn't answer). Drawn in place of a typed
+ * "⚠", which each font -- and Windows' emoji -- draws its own way. */
+export function WarningIcon() {
+  return (
+    <svg className="warning-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M10.3 3.9 2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9.5v4.5" />
+      <path d="M12 17.2h.01" />
     </svg>
   );
 }

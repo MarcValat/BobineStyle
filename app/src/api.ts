@@ -98,42 +98,38 @@ export async function cancelJob(jobId: string): Promise<void> {
   await postJson(`/jobs/${jobId}/cancel`, {});
 }
 
-type JobEvent<T> =
+export type JobEvent<TResult> =
   | { type: "log"; message: string }
   | { type: "progress"; value: number }
-  | { type: "done"; result: T }
+  | { type: "done"; result: TResult }
   | { type: "error"; message: string }
   | { type: "cancelled" };
 
-export class JobCancelled extends Error {
-  constructor() {
-    super(t().common.cancelled);
-  }
-}
+/** Follows a job over its WebSocket: every event goes to `onEvent`; a
+ * connection lost before the job ended (the engine crashed) as an error.
+ * From Bobine Audio. */
+export async function connectJobWS<TResult>(jobId: string, onEvent: (event: JobEvent<TResult>) => void): Promise<() => void> {
+  // A WebSocket takes no header: the token goes in its address.
+  const token = encodeURIComponent(await getEngineToken());
+  const ws = new WebSocket(`${(await getEngineUrl()).replace("http", "ws")}/jobs/${jobId}/ws?token=${token}`);
+  let settled = false;
 
-/** A job as a promise: `onProgress` gets how far it got (0 to 1), `onStart`
- * its id (to cancel it); settles with its result, its error, or
- * JobCancelled. An unexpected close (engine crash) is an error. */
-export function runJob<T>(jobId: Promise<string>, onProgress: (value: number) => void, onStart?: (id: string) => void): Promise<T> {
-  return new Promise((resolve, reject) => {
-    Promise.all([jobId, getEngineUrl(), getEngineToken()])
-      .then(([id, url, token]) => {
-        onStart?.(id);
-        // A WebSocket takes no header: the token goes in its address.
-        const ws = new WebSocket(`${url.replace("http", "ws")}/jobs/${id}/ws?token=${encodeURIComponent(token)}`);
-        let finished = false;
-        ws.onmessage = (msg) => {
-          const event = JSON.parse(msg.data) as JobEvent<T>;
-          if (event.type === "progress") onProgress(event.value);
-          else if (event.type === "done") resolve(event.result);
-          else if (event.type === "error") reject(new Error(event.message));
-          else if (event.type === "cancelled") reject(new JobCancelled());
-          if (event.type !== "log" && event.type !== "progress") finished = true;
-        };
-        ws.onclose = () => {
-          if (!finished) reject(new Error(t().common.engineStopped));
-        };
-      })
-      .catch(reject);
-  });
+  ws.onmessage = (ev) => {
+    const event: JobEvent<TResult> = JSON.parse(ev.data);
+    if (event.type === "done" || event.type === "error" || event.type === "cancelled") settled = true;
+    onEvent(event);
+  };
+  ws.onerror = () => {
+    if (!settled) {
+      settled = true;
+      onEvent({ type: "error", message: t().common.websocketLost });
+    }
+  };
+  ws.onclose = () => {
+    if (!settled) {
+      settled = true;
+      onEvent({ type: "error", message: t().common.connectionLost });
+    }
+  };
+  return () => ws.close();
 }
