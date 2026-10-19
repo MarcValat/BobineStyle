@@ -21,6 +21,15 @@ Rechargement à chaud de l'interface ; le moteur démarre et s'arrête avec la f
 
 `npm run dev` lance l'interface seule dans un navigateur. Avec un moteur lancé à part (`uv run bobinestyle serve` dans `../engine/`, port 8758 par défaut), tout fonctionne sauf les dialogues natifs ; en dev, `window.__test.add(chemins)` ajoute des fichiers sans dialogue, un évènement `bobinestyle:dragdrop` simule un glisser-déposer, et `?update=1` affiche une fausse mise à jour (vérifications automatiques avec Playwright).
 
+## Vérifications
+
+```
+npm run check              # types, formatage, lint, code mort, tests unitaires : ~15 s
+npm run check -- --full    # + clippy et les tests du moteur : ~1 min (pas pendant `tauri dev`)
+```
+
+`scripts/check.mjs` (repris de Bobine Audio) enchaîne `tsc`, Prettier, ESLint (règles des hooks React), knip (exports et dépendances inutilisés), les tests unitaires (Vitest, `src/*.test.ts` à côté de ce qu'ils testent), ruff (`check` et `format`) sur le moteur et `cargo fmt`. `npm install` active le hook de pré-commit (`../.githooks/pre-commit`), qui vérifie le formatage et le lint des seuls fichiers indexés. `npm run format` reformate l'app (Prettier), `uv run ruff format` le moteur, `cargo fmt` la coquille Rust.
+
 ## Empaqueter (`tauri build`)
 
 ```
@@ -43,4 +52,4 @@ Secrets requis (Settings > Secrets and variables > Actions) :
 - `TAURI_SIGNING_PRIVATE_KEY` : le contenu de `app/.tauri-keys/bobinestyle.key` (jamais commité) ;
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` : vide (clé générée sans mot de passe).
 
-Pour une nouvelle version : changer la version dans `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `../engine/pyproject.toml` et `../engine/src/bobinestyle/__init__.py`, merger, pousser le tag `vX.Y.Z`, relire puis publier le brouillon.
+Pour une nouvelle version : changer la version dans `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `../engine/pyproject.toml` et `../engine/src/bobinestyle/__init__.py`, lancer `npm run check -- --full`, merger, pousser le tag `vX.Y.Z`, relire puis publier le brouillon.
