@@ -1,5 +1,5 @@
 // Client for the engine sidecar (engine/src/bobinestyle/server.py).
-import { engineReady, getEngineUrl } from "./engine";
+import { engineHeaders, engineReady, getEngineToken, getEngineUrl } from "./engine";
 
 export interface PlannedTrack {
   index: number;
@@ -41,7 +41,9 @@ export interface MuxResult {
 
 async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
   await engineReady();
-  const resp = await fetch(`${await getEngineUrl()}${path}`, init);
+  const headers = new Headers(init?.headers);
+  for (const [name, value] of Object.entries(await engineHeaders())) headers.set(name, value);
+  const resp = await fetch(`${await getEngineUrl()}${path}`, { ...init, headers });
   if (!resp.ok) {
     let detail: unknown = `Erreur ${resp.status}`;
     try {
@@ -108,10 +110,11 @@ export function runJob<T>(
   onStart?: (id: string) => void,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
-    Promise.all([jobId, getEngineUrl()])
-      .then(([id, url]) => {
+    Promise.all([jobId, getEngineUrl(), getEngineToken()])
+      .then(([id, url, token]) => {
         onStart?.(id);
-        const ws = new WebSocket(`${url.replace("http", "ws")}/jobs/${id}/ws`);
+        // A WebSocket takes no header: the token goes in its address.
+        const ws = new WebSocket(`${url.replace("http", "ws")}/jobs/${id}/ws?token=${encodeURIComponent(token)}`);
         let finished = false;
         ws.onmessage = (msg) => {
           const event = JSON.parse(msg.data) as JobEvent<T>;

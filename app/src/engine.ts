@@ -7,6 +7,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 const DEFAULT_PORT = 8758;
 
 let engineUrl: string | null = null;
+let engineToken: string | null = null;
 
 /** The engine sidecar's local address, asked once to the app (see
  * src-tauri/src/lib.rs's free_port). */
@@ -19,6 +20,23 @@ export async function getEngineUrl(): Promise<string> {
     engineUrl = `http://127.0.0.1:${port}`;
   }
   return engineUrl;
+}
+
+/** The dev builds' token (src-tauri/src/lib.rs's DEV_TOKEN): what a plain
+ * browser on the dev server sends to the engine that `tauri dev` (or the
+ * end-to-end tests) started. */
+const DEV_TOKEN = "bobine-dev";
+
+/** The secret the engine asks of every request (see lib.rs's new_token),
+ * asked once to the app. */
+export async function getEngineToken(): Promise<string> {
+  if (engineToken === null) engineToken = isTauri() ? await invoke<string>("engine_token") : DEV_TOKEN;
+  return engineToken;
+}
+
+/** What a request to the engine carries for it to answer. */
+export async function engineHeaders(): Promise<Record<string, string>> {
+  return { "X-Bobine-Token": await getEngineToken() };
 }
 
 const HEALTH_POLL_INTERVAL_MS = 100;
