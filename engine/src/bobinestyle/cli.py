@@ -188,7 +188,7 @@ def _echo_plan(p: MuxPlan, indent: str = "") -> None:
         s = t.stream
         if t.chosen:
             flags = " ".join(f for f, on in (("défaut", t.default), ("forcés", t.forced)) if on)
-            action = "restylé" if t.text is not None else "copié"
+            action = ("converti" if s.codec in ("subrip", "srt") else "restylé") if t.text is not None else "copié"
             lines = f"{t.dialogue_lines} répliques" if t.dialogue_lines is not None else "?"
             click.echo(f"{indent}@{s.index}  {s.title or '-'}  ->  {t.title}  {flags}  ({action}, {lines})")
         else:

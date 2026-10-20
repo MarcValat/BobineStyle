@@ -54,7 +54,6 @@ _EN: dict[str, str] = {
     "{count} réplique(s) à tirets centrée(s) par leur marge": "{count} dash line(s) centered by their margin",
     # mux
     "{name} : {label}": "{name}: {label}",
-    "SRT converti en ASS": "SRT converted to ASS",
     "format image : copié tel quel": "image format: copied as is",
     "n'est plus la piste par défaut": "no longer the default track",
     "polices introuvables sur ce PC, non jointes : {fonts}": "fonts not found on this PC, not attached: {fonts}",

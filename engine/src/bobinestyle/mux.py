@@ -138,7 +138,6 @@ def plan(path: str, languages: tuple[str, ...] = DEFAULT_LANGUAGES, default_lang
             cues = parse_srt(extract_subtitle_text(path, track.stream.index, track.stream.codec))
             track.text = srt_to_ass(cues, size)
             track.dialogue_lines = len(cues)
-            track.notes.append(tr("SRT converti en ASS"))
         else:
             track.notes.append(tr("format image : copié tel quel"))
 
