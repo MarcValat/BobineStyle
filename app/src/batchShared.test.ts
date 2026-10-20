@@ -10,7 +10,7 @@ const file = (status: FileItem["status"], exists?: boolean): FileItem => ({
 describe("which files the buttons process", () => {
   it("redoes a read file that isn't busy", () => {
     for (const status of ["ready", "done", "error", "cancelled"] as const) expect(isRedoable(file(status, false))).toBe(true);
-    for (const status of ["planning", "no_french", "plan_error", "queued", "running"] as const)
+    for (const status of ["planning", "nothing", "plan_error", "queued", "running"] as const)
       expect(isRedoable(file(status, false))).toBe(false);
   });
 
@@ -39,7 +39,7 @@ describe("a row's bar", () => {
     expect(rowState(file("done", true), false)).toBe("done");
     expect(rowState(file("error", false), false)).toBe("error");
     expect(rowState(file("plan_error"), false)).toBe("error");
-    expect(rowState(file("no_french"), false)).toBe("idle");
+    expect(rowState(file("nothing"), false)).toBe("idle");
   });
 });
 

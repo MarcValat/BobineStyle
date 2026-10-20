@@ -27,7 +27,9 @@ export function FileDetail({
 }) {
   const t = useT();
   const plan = file.plan;
-  const french = plan?.tracks.filter((track) => track.french) ?? [];
+  const chosen = plan?.tracks.filter((track) => track.chosen) ?? [];
+  const defaultName = plan?.default_language ? t.languages.inSentence(languageName(plan.default_language)) : null;
+  const hasDefault = chosen.some((track) => track.language === plan?.default_language);
   const written = file.output?.exists ? file.output.path : undefined;
   const redo = isRedoable(file) && !!file.output?.exists;
   return (
@@ -62,23 +64,25 @@ export function FileDetail({
       <div className="detail-body list-scroll">
         <RunStatus file={file} />
         {file.status === "plan_error" && file.error && <p className="error">{file.error}</p>}
-        {plan && french.length === 0 && (
-          <p className="placeholder">{plan.tracks.length === 0 ? t.detail.noSubtitles : t.detail.noFrench}</p>
+        {plan && chosen.length === 0 && (
+          <p className="placeholder">{plan.tracks.length === 0 ? t.detail.noSubtitles : t.detail.noChosen}</p>
         )}
-        {plan && french.length > 0 && (
+        {plan && chosen.length > 0 && (
           <>
             <p className="detail-default">
-              {plan.audio ? (
+              {!hasDefault || !defaultName ? (
+                t.detail.noDefaultTrack(defaultName ?? "?")
+              ) : plan.audio ? (
                 <>
                   {t.detail.defaultAudio}
                   <strong>{t.languages.inSentence(languageName(plan.audio.language))}</strong>
                   {plan.audio.title && <span className="muted"> ({plan.audio.title})</span>}
                   {t.detail.defaultSubtitles}
-                  <strong>{plan.audio.french ? t.detail.forced : t.detail.full}</strong>
+                  <strong>{t.detail.defaultKind(plan.audio.same, defaultName)}</strong>
                   {t.detail.byDefault}
                 </>
               ) : (
-                t.detail.noAudio
+                t.detail.noAudio(defaultName)
               )}
             </p>
 
@@ -193,17 +197,18 @@ function TrackRows({ track }: { track: PlannedTrack }) {
   const current = [languageName(track.language), track.codec, track.title && t.detail.titled(track.title)].filter(Boolean).join(" · ");
   return (
     <tbody>
-      <tr className={track.french ? "" : "dim"}>
+      <tr className={track.chosen ? "" : "dim"}>
         <td>
           <span className="muted">#{track.index}</span> {current}
         </td>
-        <td>{track.french ? track.new_title : <span className="muted">{t.detail.unchanged}</span>}</td>
+        <td>{track.chosen ? track.new_title : <span className="muted">{t.detail.unchanged}</span>}</td>
         <td>
           {track.default && <span className="pill pill-accent">{t.detail.flagDefault}</span>}
           {track.forced && <span className="pill">{t.detail.flagForced}</span>}
         </td>
         <td>
           {t.detail.actions[track.action]}
+          {!track.chosen && <span className="muted"> · {t.detail.notChosen}</span>}
           {track.dialogue_lines !== null && <span className="muted"> · {t.detail.lines(track.dialogue_lines)}</span>}
         </td>
       </tr>

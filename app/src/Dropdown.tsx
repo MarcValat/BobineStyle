@@ -253,3 +253,46 @@ export function Select<T extends string>({
     </Dropdown>
   );
 }
+
+/** A drop-down picking several options (a box each, the list staying open),
+ * "2 / 4" beside what's picked. Bobine Style's: Langues. */
+export function MultiSelect<T extends string>({
+  label,
+  values,
+  options,
+  onChange,
+  disabled = false,
+  placeholder = "—",
+}: {
+  label: string;
+  values: readonly T[];
+  options: readonly { value: T; label: string; detail?: string }[];
+  onChange: (values: T[]) => void;
+  disabled?: boolean;
+  /** Shown when nothing is picked. */
+  placeholder?: string;
+}) {
+  const picked = options.filter((o) => values.includes(o.value));
+  return (
+    <Dropdown
+      label={label}
+      shown={picked.length > 0 ? picked.map((o) => o.label).join(", ") : placeholder}
+      badge={`${picked.length} / ${options.length}`}
+      disabled={disabled || options.length === 0}
+      multi
+    >
+      {() =>
+        options.map((o) => (
+          <DropdownOption
+            key={o.value}
+            check
+            selected={values.includes(o.value)}
+            label={o.label}
+            detail={o.detail}
+            onPick={() => onChange(values.includes(o.value) ? values.filter((v) => v !== o.value) : [...values, o.value])}
+          />
+        ))
+      }
+    </Dropdown>
+  );
+}

@@ -5,10 +5,13 @@ import { t } from "./i18n";
 export interface PlannedTrack {
   index: number;
   codec: string;
+  /** Its language (ISO 639-2, "fra" made "fre"; guessed from its title
+   * when untagged). */
   language: string | null;
   title: string | null;
-  french: boolean;
-  /** French tracks: "full" or "forced". */
+  /** In one of the chosen languages: restyled and named. */
+  chosen: boolean;
+  /** Chosen tracks: "full" or "forced". */
   kind: "full" | "forced" | null;
   new_title: string | null;
   default: boolean;
@@ -22,12 +25,21 @@ export interface PlannedTrack {
 export interface Plan {
   path: string;
   video_size: [number, number] | null;
-  audio: { language: string | null; title: string | null; french: boolean } | null;
+  /** `same`: in the default subtitles' language (their forced track is the default). */
+  audio: { language: string | null; title: string | null; same: boolean } | null;
   tracks: PlannedTrack[];
   fonts: string[];
   fonts_present: string[];
   fonts_missing: string[];
   warnings: string[];
+  default_language: string | null;
+}
+
+/** The subtitles' languages to restyle, and the one whose track becomes
+ * the default (null: the first). */
+export interface Languages {
+  languages: string[];
+  default_language: string | null;
 }
 
 export interface Output {
@@ -86,12 +98,12 @@ export async function setEngineLanguage(language: string): Promise<void> {
   });
 }
 
-export async function planFile(path: string): Promise<Plan> {
-  return (await postJson("/plan", { path })).json();
+export async function planFile(path: string, languages: Languages): Promise<Plan> {
+  return (await postJson("/plan", { path, ...languages })).json();
 }
 
-export async function startMux(source: string, output: string): Promise<string> {
-  return (await (await postJson("/jobs/mux", { source, output })).json()).job_id;
+export async function startMux(source: string, output: string, languages: Languages): Promise<string> {
+  return (await (await postJson("/jobs/mux", { source, output, ...languages })).json()).job_id;
 }
 
 export async function cancelJob(jobId: string): Promise<void> {

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { cancelJob, expandPaths, planFile, planOutputs, startMux, type MuxResult } from "./api";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { cancelJob, expandPaths, planFile, planOutputs, startMux, type Languages, type MuxResult } from "./api";
 import {
   BatchFooter,
   isAlreadyDone,
@@ -13,14 +13,26 @@ import {
   type FileItem,
 } from "./batchShared";
 import { FileDetail } from "./Detail";
+import { MultiSelect, Select } from "./Dropdown";
 import { DropZone } from "./DropZone";
 import { DropOverlay, useFileDrop } from "./FileDrop";
 import { useT } from "./i18n";
 import { FontIcon, ScreenIcon, TagIcon } from "./icons";
+import { InfoTip } from "./InfoTip";
+import { languageName, USUAL_LANGUAGES } from "./languages";
 import { JobCancelled, runJob } from "./jobs";
 import { pickFolders, pickMediaFiles } from "./mediaDialog";
 import { basename, parentName } from "./paths";
-import { loadRecursive, saveRecursive, useListCollapsed, useRecursive } from "./settings";
+import {
+  loadRecursive,
+  saveDefaultLanguage,
+  saveLanguages,
+  saveRecursive,
+  useDefaultLanguage,
+  useLanguages,
+  useListCollapsed,
+  useRecursive,
+} from "./settings";
 import { devParam, errorMessage } from "./util";
 import { EmptyWorkspace, FoldButton, ListRow, MoveButtons, RemoveAllButton, useListKeys } from "./Workspace";
 import "./BatchView.css";
@@ -31,9 +43,10 @@ const MUXING = 2;
 
 /** The workspace (Bobine Audio's MultiTrackBatch, for this app's one way of
  * working): MKVs added one by one or by folder (a season, a series), each
- * read at once -- its French subtitle tracks, what they'll become, the fonts
- * to attach -- then processed: the house style, the tracks named and
- * flagged, the file remuxed into the output folder and checked. */
+ * read at once -- its subtitle tracks in the chosen languages, what they'll
+ * become, the fonts to attach -- then processed: the house style, the
+ * tracks named and flagged, the file remuxed into the output folder and
+ * checked. */
 export function StyleBatch() {
   const t = useT();
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -46,6 +59,14 @@ export function StyleBatch() {
   const recursive = useRecursive();
   const collapsed = useListCollapsed();
   const rowBadge = useRowBadge();
+  // The subtitles' languages to restyle, and the one whose track becomes
+  // the default (the first chosen when it isn't among them).
+  const languages = useLanguages();
+  const defaultChoice = useDefaultLanguage();
+  const defaultLanguage = defaultChoice && languages.includes(defaultChoice) ? defaultChoice : (languages[0] ?? null);
+  const picked: Languages = useMemo(() => ({ languages, default_language: defaultLanguage }), [languages, defaultLanguage]);
+  const pickedRef = useRef(picked);
+  pickedRef.current = picked;
   const cancelled = useRef(false);
   const filesRef = useRef(files);
   filesRef.current = files;
@@ -53,6 +74,21 @@ export function StyleBatch() {
   const update = useCallback((path: string, patch: Partial<FileItem> | ((f: FileItem) => Partial<FileItem>)) => {
     setFiles((fs) => fs.map((f) => (f.path === path ? { ...f, ...(typeof patch === "function" ? patch(f) : patch) } : f)));
   }, []);
+
+  /** Reads what processing `path` does, in the languages chosen now. */
+  const readPlan = useCallback(
+    (path: string) => {
+      const languages = pickedRef.current;
+      PLANNING(() => planFile(path, languages))
+        .then((plan) => {
+          // Chosen again meanwhile: the newer reading wins.
+          if (pickedRef.current !== languages) return;
+          update(path, { plan, status: plan.tracks.some((track) => track.chosen) ? "ready" : "nothing" });
+        })
+        .catch((e) => update(path, { status: "plan_error", error: errorMessage(e) }));
+    },
+    [update],
+  );
 
   /** Adds the MKVs of `paths` not in the list yet (a folder: its MKVs, its
    * seasons' too if "Inclure les sous-dossiers"), each read at once. */
@@ -71,14 +107,22 @@ export function StyleBatch() {
       if (found.length === 0) setAddError(t.add.noMkv);
       if (added.length === 0) return;
       setFiles((fs) => [...fs, ...added.map((path) => ({ path, status: "planning" as const }))]);
-      for (const path of added) {
-        PLANNING(() => planFile(path))
-          .then((plan) => update(path, { plan, status: plan.tracks.some((track) => track.french) ? "ready" : "no_french" }))
-          .catch((e) => update(path, { status: "plan_error", error: errorMessage(e) }));
-      }
+      for (const path of added) readPlan(path);
     },
-    [update, t],
+    [readPlan, t],
   );
+
+  // Other languages, another default: every file read again (not while
+  // processing: the settings bar waits for it).
+  const pickedKey = `${languages.join(",")}|${defaultLanguage}`;
+  const readWith = useRef(pickedKey);
+  useEffect(() => {
+    if (readWith.current === pickedKey) return;
+    readWith.current = pickedKey;
+    const paths = filesRef.current.map((f) => f.path);
+    setFiles((fs) => fs.map((f) => ({ ...f, status: "planning", error: undefined, log: [] })));
+    paths.forEach(readPlan);
+  }, [pickedKey, readPlan]);
 
   const dropBlocked = running ? t.add.dropBlocked : null;
   // Dropped paths come expanded already (FileDrop, with the same setting).
@@ -127,7 +171,7 @@ export function StyleBatch() {
   const busy = files.filter((f) => f.status === "queued" || f.status === "running");
   const failed = files.filter((f) => f.status === "error").length;
   const alreadyDone = files.filter((f) => isAlreadyDone(f, force)).length;
-  const nothing = files.filter((f) => f.status === "no_french").length;
+  const nothing = files.filter((f) => f.status === "nothing").length;
 
   /** Processes `targets` (the main button: every runnable file; the
    * detail's button: that one, written again if it was). */
@@ -150,7 +194,7 @@ export function StyleBatch() {
           update(path, { status: "running" });
           try {
             const result = await runJob<MuxResult>(
-              startMux(path, output),
+              startMux(path, output, pickedRef.current),
               (message) => update(path, (f) => ({ log: [...(f.log ?? []), message] })),
               (jobId) => update(path, { jobId }),
               (progress) => update(path, { progress }),
@@ -192,6 +236,12 @@ export function StyleBatch() {
   // several.
   const grouped = new Set(files.map((f) => parentName(f.path))).size > 1;
   const runTotal = finished + busy.length;
+  // Every language the files' subtitles are in, the chosen ones first;
+  // the usual ones while none is read yet.
+  const found = files.flatMap((f) => f.plan?.tracks.map((track) => track.language) ?? []);
+  const languageOptions = [...new Set([...languages, ...(found.length > 0 ? found : USUAL_LANGUAGES)])]
+    .filter((code): code is string => !!code)
+    .map((code) => ({ value: code, label: languageName(code) }));
 
   return (
     <main className="batch-main">
@@ -228,6 +278,31 @@ export function StyleBatch() {
         </EmptyWorkspace>
       ) : (
         <>
+          <div className="batch-config panel">
+            <span className="config-field">
+              {t.languages.label}
+              <MultiSelect
+                label={t.languages.label}
+                values={languages}
+                options={languageOptions}
+                onChange={saveLanguages}
+                placeholder={t.languages.none}
+                disabled={running}
+              />
+            </span>
+            <span className="config-field">
+              {t.languages.defaultLabel}
+              <Select
+                label={t.languages.defaultLabel}
+                value={defaultLanguage ?? ""}
+                options={languages.map((code) => ({ value: code, label: languageName(code) }))}
+                onChange={saveDefaultLanguage}
+                disabled={running}
+              />
+            </span>
+            <InfoTip>{t.languages.hint}</InfoTip>
+          </div>
+
           <div className={`workspace${collapsed ? " list-collapsed" : ""}`}>
             <section className="panel file-list">
               <div className="file-list-header">
@@ -323,20 +398,26 @@ function ListRowGroup({ header, children }: { header: string | null; children: R
   );
 }
 
-/** Under a row's name: its French tracks ("complets + forcés (SRT)"), or
- * why there's nothing to do. */
+/** Under a row's name: its tracks in the chosen languages ("fre complets +
+ * forcés · eng complets (SRT)"), or why there's nothing to do. */
 function RowDetail({ file }: { file: FileItem }) {
   const t = useT();
   if (file.status === "planning") return <>{t.detail.readingTracks}</>;
   if (file.status === "plan_error") return <span className="error">{file.error}</span>;
   if (!file.plan) return null;
-  const french = file.plan.tracks.filter((track) => track.french);
-  if (french.length === 0) return <>{t.list.noFrench}</>;
+  const chosen = file.plan.tracks.filter((track) => track.chosen);
+  if (chosen.length === 0) return <>{t.list.noChosen}</>;
+  const byLanguage = [...new Set(chosen.map((track) => track.language))].map(
+    (language) =>
+      `${language ?? "?"} ` +
+      chosen
+        .filter((track) => track.language === language)
+        .map((track) => (track.kind === "forced" ? t.list.forced : t.list.full) + (track.action === "convert" ? " (SRT)" : ""))
+        .join(" + "),
+  );
   return (
     <>
-      {french
-        .map((track) => (track.kind === "forced" ? t.list.forced : t.list.full) + (track.action === "convert" ? " (SRT)" : ""))
-        .join(" + ")}
+      {byLanguage.join(" · ")}
       {file.plan.fonts.length > 0 && ` · ${t.list.fonts(file.plan.fonts.length)}`}
     </>
   );

@@ -50,8 +50,8 @@ export function limiter(n: number) {
 /** Where one file stands, from being read to being written. */
 type FileStatus =
   | "planning" // tracks being read
-  | "ready" // French subtitles found, can be processed
-  | "no_french" // nothing to do
+  | "ready" // subtitles in the chosen languages found, can be processed
+  | "nothing" // none: nothing to do
   | "plan_error" // unreadable
   | "queued"
   | "running"
@@ -71,7 +71,7 @@ export interface FileItem {
   log?: string[];
 }
 
-/** Has French subtitles, is read and not busy: can be processed, again too
+/** Has subtitles in the chosen languages, is read and not busy: can be processed, again too
  * (the detail's "Refaire ce fichier"). */
 export function isRedoable(file: FileItem): boolean {
   return ["ready", "done", "error", "cancelled"].includes(file.status) && file.output !== undefined;
@@ -117,7 +117,7 @@ export function useRowBadge(): (file: FileItem, force: boolean) => [string, Badg
     switch (file.status) {
       case "planning":
         return [s.reading, "idle"];
-      case "no_french":
+      case "nothing":
         return [s.nothingToDo, "idle"];
       case "plan_error":
         return [s.unreadable, "error"];

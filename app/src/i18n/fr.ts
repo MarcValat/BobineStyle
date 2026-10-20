@@ -76,7 +76,7 @@ export const fr = {
 
   empty: {
     title: "Un style propre et lisible pour les sous-titres de tes MKV",
-    hint: "Un fichier ou toute une série : Bobine Style restyle les sous-titres français et nomme les pistes, sans rien réencoder.",
+    hint: "Dans les langues de ton choix, un fichier ou toute une série : Bobine Style restyle les sous-titres et nomme les pistes, sans rien réencoder.",
     drop: "Glisse des MKV ou un dossier ici, ou clique pour parcourir",
     dropHint: "Une saison, une série entière : les fichiers déjà faits sont sautés.",
     styleTitle: "Le style maison",
@@ -85,7 +85,7 @@ export const fr = {
     sizeTitle: "La bonne taille partout",
     sizeHint: "Même taille à l'écran en 720p qu'en 4K, en 16:9, en scope ou en 4:3. Les panneaux ne bougent pas.",
     tracksTitle: "Des pistes bien nommées",
-    tracksHint: "« Français », « Français (forcé) », la bonne par défaut selon l'audio, et les polices jointes au MKV.",
+    tracksHint: "« Français », « English (forced) »… dans chaque langue, la bonne par défaut selon l'audio, et les polices jointes au MKV.",
   },
 
   add: {
@@ -122,7 +122,7 @@ export const fr = {
         `${toDo} à traiter`,
         done > 0 && `${done} terminé${done > 1 ? "s" : ""}`,
         already > 0 && `${already} déjà traité${already > 1 ? "s" : ""}`,
-        nothing > 0 && `${nothing} sans sous-titres français`,
+        nothing > 0 && `${nothing} sans sous-titres dans ces langues`,
         failed > 0 && `${failed} échec${failed > 1 ? "s" : ""}`,
       ]
         .filter(Boolean)
@@ -135,7 +135,7 @@ export const fr = {
     count: (n: number) => `Fichiers · ${n}`,
     forced: "forcés",
     full: "complets",
-    noFrench: "aucun sous-titre français",
+    noChosen: "aucun sous-titre dans ces langues",
     fonts: (n: number) => `${n} police${n > 1 ? "s" : ""}`,
     redo: "Refaire ce fichier",
     openFolder: "Ouvrir le dossier du fichier écrit",
@@ -158,7 +158,7 @@ export const fr = {
     subtitles: (list: string) => `sous-titres : ${list}`,
     noSubtitlesShort: "aucun sous-titre",
     noSubtitles: "Aucune piste de sous-titres : ce fichier ne sera pas traité.",
-    noFrench: "Aucune piste de sous-titres française : ce fichier ne sera pas traité.",
+    noChosen: "Aucune piste de sous-titres dans les langues choisies : ce fichier ne sera pas traité.",
     openFolder: "Ouvrir le dossier",
     applyFile: "Appliquer à ce fichier",
     running: (percent: number) => `Application en cours · ${percent} %`,
@@ -169,9 +169,11 @@ export const fr = {
     defaultAudio: "Audio par défaut en ",
     defaultSubtitles: " : sous-titres ",
     byDefault: " par défaut.",
-    forced: "forcés",
-    full: "complets",
-    noAudio: "Pas d'audio : sous-titres complets par défaut.",
+    // "les sous-titres français complets" / "forcés"
+    defaultKind: (forced: boolean, language: string) => `${language} ${forced ? "forcés" : "complets"}`,
+    noAudio: (language: string) => `Pas d'audio : sous-titres ${language} complets par défaut.`,
+    noDefaultTrack: (language: string) => `Aucune piste de sous-titres en ${language} : la piste par défaut ne change pas.`,
+    notChosen: "langue non choisie",
     style: "Style appliqué",
     houseStyle: "Style maison",
     houseStyleSummary: "Trebuchet MS gras 66 px · blanc, contour et ombre noirs · 75 px du bas",
@@ -193,6 +195,10 @@ export const fr = {
   },
 
   languages: {
+    label: "Langues :",
+    defaultLabel: "Sous-titres par défaut :",
+    none: "aucune",
+    hint: "Langues : les sous-titres restylés et renommés dans leur langue (« Français », « English (forced) ») ; les autres sont copiés tels quels. Sous-titres par défaut : la langue dont une piste devient celle par défaut, la forcée si l'audio par défaut est dans cette langue, la complète sinon.",
     unknown: "langue inconnue",
     /** A language's name inside a sentence ("Audio par défaut en japonais"). */
     inSentence: (name: string) => name.toLowerCase(),

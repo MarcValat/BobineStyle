@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { loadSetting, saveSetting } from "./util";
 
 // Options' settings, remembered across sessions; a view using one follows
@@ -61,4 +61,39 @@ export function saveRecursive(recursive: boolean): void {
 
 export function useRecursive(): boolean {
   return useSyncExternalStore(subscribe, loadRecursive);
+}
+
+const LANGUAGES_KEY = "bobinestyle.languages";
+const DEFAULT_LANGUAGE_KEY = "bobinestyle.defaultLanguage";
+
+/** The subtitles' languages to restyle (ISO 639-2 codes, as the engine
+ * takes them): French unless picked otherwise. */
+function loadLanguagesKey(): string {
+  return loadSetting(LANGUAGES_KEY) ?? "fre";
+}
+
+export function saveLanguages(languages: string[]): void {
+  saveSetting(LANGUAGES_KEY, languages.join(",") === "fre" ? null : languages.join(","));
+  changed();
+}
+
+/** The chosen languages, in the order they were picked. */
+export function useLanguages(): string[] {
+  const key = useSyncExternalStore(subscribe, loadLanguagesKey);
+  return useMemo(() => key.split(",").filter(Boolean), [key]);
+}
+
+/** The language whose track becomes the default subtitle track (absent:
+ * the first chosen one). */
+function loadDefaultLanguage(): string | null {
+  return loadSetting(DEFAULT_LANGUAGE_KEY);
+}
+
+export function saveDefaultLanguage(language: string | null): void {
+  saveSetting(DEFAULT_LANGUAGE_KEY, language);
+  changed();
+}
+
+export function useDefaultLanguage(): string | null {
+  return useSyncExternalStore(subscribe, loadDefaultLanguage);
 }

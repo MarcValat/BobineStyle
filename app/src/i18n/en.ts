@@ -75,7 +75,7 @@ export const en: Messages = {
 
   empty: {
     title: "A clean, readable style for your MKVs' subtitles",
-    hint: "One file or a whole series: Bobine Style restyles the French subtitles and names the tracks, without re-encoding anything.",
+    hint: "In the languages you choose, one file or a whole series: Bobine Style restyles the subtitles and names the tracks, without re-encoding anything.",
     drop: "Drop MKVs or a folder here, or click to browse",
     dropHint: "A season, a whole series: the files already done are skipped.",
     styleTitle: "The house style",
@@ -84,7 +84,8 @@ export const en: Messages = {
     sizeTitle: "The right size everywhere",
     sizeHint: "The same size on screen in 720p as in 4K, in 16:9, scope or 4:3. Signs don't move.",
     tracksTitle: "Well-named tracks",
-    tracksHint: "“Français”, “Français (forcé)”, the right one by default from the audio, and the fonts attached to the MKV.",
+    tracksHint:
+      "“Français”, “English (forced)”… in each language, the right one by default from the audio, and the fonts attached to the MKV.",
   },
 
   add: {
@@ -121,7 +122,7 @@ export const en: Messages = {
         `${toDo} to process`,
         done > 0 && `${done} done`,
         already > 0 && `${already} already processed`,
-        nothing > 0 && `${nothing} without French subtitles`,
+        nothing > 0 && `${nothing} without subtitles in these languages`,
         failed > 0 && `${failed} failed`,
       ]
         .filter(Boolean)
@@ -134,7 +135,7 @@ export const en: Messages = {
     count: (n) => `Files · ${n}`,
     forced: "forced",
     full: "full",
-    noFrench: "no French subtitles",
+    noChosen: "no subtitles in these languages",
     fonts: (n) => `${n} font${n === 1 ? "" : "s"}`,
     redo: "Redo this file",
     openFolder: "Open the written file's folder",
@@ -157,7 +158,7 @@ export const en: Messages = {
     subtitles: (list) => `subtitles: ${list}`,
     noSubtitlesShort: "no subtitles",
     noSubtitles: "No subtitle track: this file won't be processed.",
-    noFrench: "No French subtitle track: this file won't be processed.",
+    noChosen: "No subtitle track in the chosen languages: this file won't be processed.",
     openFolder: "Open the folder",
     applyFile: "Apply to this file",
     running: (percent) => `Applying · ${percent}%`,
@@ -167,9 +168,10 @@ export const en: Messages = {
     defaultAudio: "Default audio in ",
     defaultSubtitles: ": ",
     byDefault: " subtitles by default.",
-    forced: "forced",
-    full: "full",
-    noAudio: "No audio: full subtitles by default.",
+    defaultKind: (forced, language) => `${forced ? "forced" : "full"} ${language}`,
+    noAudio: (language) => `No audio: full ${language} subtitles by default.`,
+    noDefaultTrack: (language) => `No ${language} subtitle track: the default track doesn't change.`,
+    notChosen: "language not chosen",
     style: "Style applied",
     houseStyle: "House style",
     houseStyleSummary: "Bold Trebuchet MS 66 px · white, black outline and shadow · 75 px from the bottom",
@@ -191,6 +193,10 @@ export const en: Messages = {
   },
 
   languages: {
+    label: "Languages:",
+    defaultLabel: "Default subtitles:",
+    none: "none",
+    hint: "Languages: the subtitles restyled and renamed in their own language (“Français”, “English (forced)”); the others are copied as they are. Default subtitles: the language whose track becomes the default one, the forced one if the default audio is in that language, the full one otherwise.",
     unknown: "unknown language",
     inSentence: (name) => name,
     names: {
