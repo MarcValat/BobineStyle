@@ -14,7 +14,8 @@ from dataclasses import dataclass
 from bobinestyle.measure import centring_margin
 from bobinestyle.roles import Role
 from bobinestyle.scale import screen_scale
-from bobinestyle.style import FONT, FONT_SIZE, MARGIN_SIDE, house_fields
+from bobinestyle.style import house_fields, is_dashes
+from bobinestyle.styles import HOUSE, SubtitleStyle
 
 _TIME = r"(\d+):(\d{1,2}):(\d{1,2})[,.](\d{1,3})"
 _TIMING_RE = re.compile(_TIME + r"\s*-->\s*" + _TIME)
@@ -161,25 +162,27 @@ def _classify(cues: list[Cue]) -> list[_Line]:
     return lines
 
 
-def srt_to_ass(cues: list[Cue], video_size: tuple[int, int] | None) -> str:
-    """``cues`` (from ``parse_srt``) as an ASS script for a video shown at
-    ``video_size``."""
+def srt_to_ass(cues: list[Cue], video_size: tuple[int, int] | None, style: SubtitleStyle = HOUSE) -> str:
+    """``cues`` (from ``parse_srt``) as an ASS script in ``style`` for a
+    video shown at ``video_size``."""
     width, height = video_size or (1920, 1080)
     k = screen_scale(width, height)
     lines = _classify(cues)
 
-    size = FONT_SIZE * k
+    size = style.size * k
     for line in lines:
-        if line.role in (Role.DASHES, Role.DASHES_ITALIC):
-            italic = line.role is Role.DASHES_ITALIC
-            line.margin_l = centring_margin(_plain_lines(line.text), FONT, size, italic, width, MARGIN_SIDE * k)
+        if is_dashes(line.role, style):
+            italic = house_fields(line.role, k, k, style)["italic"] == "-1"
+            line.margin_l = centring_margin(
+                _plain_lines(line.text), style.font, size, italic, width, style.margin_side * k, style.bold
+            )
 
     used = [Role.DIALOGUE] + [
         r for r in STYLE_NAMES if r is not Role.DIALOGUE and any(line.role is r for line in lines)
     ]
     styles = []
     for role in used:
-        fields = house_fields(role, k, k)
+        fields = house_fields(role, k, k, style)
         styles.append("Style: " + ",".join([STYLE_NAMES[role]] + [fields[name] for name in _style_field_names()[1:]]))
     events = [
         f"Dialogue: 0,{_ass_time(line.cue.start)},{_ass_time(line.cue.end)},{STYLE_NAMES[line.role]},,"

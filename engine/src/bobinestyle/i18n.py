@@ -67,6 +67,8 @@ _EN: dict[str, str] = {
     "group(s) out of time order: some players wouldn't show everything",
     # server
     "Fichier introuvable : {path}": "File not found: {path}",
+    "Style invalide : {error}": "Invalid style: {error}",
+    "Styles illisibles : {error}": "Unreadable styles: {error}",
     "Analyse des pistes…": "Reading the tracks…",
     "aucune piste de sous-titres dans les langues choisies": "no subtitle track in the chosen languages",
     "Remux…": "Remuxing…",

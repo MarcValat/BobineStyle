@@ -39,7 +39,8 @@ from bobinestyle.languages import normalize, track_language, track_name
 from bobinestyle.matroska import MatroskaError, cluster_timestamps, out_of_order
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 from bobinestyle.srt import parse_srt, srt_to_ass
-from bobinestyle.style import FONT, apply_house_style
+from bobinestyle.style import apply_house_style
+from bobinestyle.styles import HOUSE, SubtitleStyle
 
 _FORCED_TITLE_RE = re.compile(r"forc|sign|panneau", re.IGNORECASE)
 # A track with less than this share of the fullest one's dialogue in its
@@ -99,9 +100,14 @@ def default_audio(streams: list[StreamInfo]) -> StreamInfo | None:
     return next((s for s in audio if s.default), audio[0] if audio else None)
 
 
-def plan(path: str, languages: tuple[str, ...] = DEFAULT_LANGUAGES, default_language: str | None = None) -> MuxPlan:
+def plan(
+    path: str,
+    languages: tuple[str, ...] = DEFAULT_LANGUAGES,
+    default_language: str | None = None,
+    style: SubtitleStyle = HOUSE,
+) -> MuxPlan:
     """What processing ``path`` does: its subtitles in ``languages``
-    restyled and named, the default subtitle track ``default_language``'s
+    restyled in ``style`` and named, the default subtitle track ``default_language``'s
     (the first language's when not given), the fonts to attach."""
     chosen_languages = {normalize(code) for code in languages}
     default_language = (
@@ -121,14 +127,14 @@ def plan(path: str, languages: tuple[str, ...] = DEFAULT_LANGUAGES, default_lang
         language = track_language(s, fallback)
         tracks.append(TrackPlan(s, language, language in chosen_languages))
     warnings: list[str] = []
-    needed_fonts = {FONT.lower()}
+    needed_fonts = {style.font.lower()}
 
     for track in tracks:
         if not track.chosen:
             continue
         fmt = TEXT_FORMATS.get(track.stream.codec)
         if fmt == "ass":
-            result = apply_house_style(extract_subtitle_text(path, track.stream.index, track.stream.codec), size)
+            result = apply_house_style(extract_subtitle_text(path, track.stream.index, track.stream.codec), size, style)
             track.text = result.text
             track.dialogue_lines = result.report.dialogue_lines
             track.notes += [tr("{name} : {label}", name=name, label=role.label) for name, role in result.restyled]
@@ -136,7 +142,7 @@ def plan(path: str, languages: tuple[str, ...] = DEFAULT_LANGUAGES, default_lang
             needed_fonts |= fonts_used(parse_ass(result.text))
         elif fmt == "srt":
             cues = parse_srt(extract_subtitle_text(path, track.stream.index, track.stream.codec))
-            track.text = srt_to_ass(cues, size)
+            track.text = srt_to_ass(cues, size, style)
             track.dialogue_lines = len(cues)
         else:
             track.notes.append(tr("format image : copié tel quel"))

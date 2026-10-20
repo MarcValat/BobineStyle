@@ -30,6 +30,7 @@ uv run bobinestyle serve                       # the app's local HTTP server (do
 - `roles.py`: a style's role from its lines' usage (plain dialogue or typesetting tags), then its look (italic, top, dashes, overlap, margins).
 - `style.py`: the house style written into the script's grid, kept when lines carry positions or sizes of their own; only style lines and a few headers change, plus the margin centring dash blocks that have none.
 - `srt.py`: SRT cues to ASS lines with their role; `measure.py` measures text with the real font (Pillow) to centre dash blocks.
+- `styles.py`: a style (font, size, colours, outline, shadow, margins, and each variant on or off with what it changes), the house style built in, the user's own in `styles.json` in the app's data folder (`BOBINESTYLE_DATA`, given by the app); `/styles` reads and writes them, `/styles/import` and `/styles/export` a shared file, `/fonts` lists the fonts installed. `/plan` and `/jobs/mux` take the style to apply (the house style when none).
 - `languages.py`: language codes made one ("fra" -> "fre"), an untagged track's language from its title, track names in their own language.
 - `mux.py`: the plan (the chosen languages' tracks, full/forced per language, default track from the default audio, fonts to attach) and the ffmpeg remux (`-copyts`: extracted tracks keep the container's timestamps).
 - `server.py` + `jobs.py`: FastAPI sidecar for the app; remuxes run as cancellable jobs streaming progress over WebSocket.

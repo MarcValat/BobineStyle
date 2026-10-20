@@ -225,6 +225,9 @@ fn spawn_sidecar(app: &tauri::AppHandle, port: u16, token: &str) -> Option<Child
     // and assigning to the job.
     let parent_pid = std::process::id().to_string();
     let port = port.to_string();
+    // Where the engine keeps the user's styles (styles.json): the app's own
+    // data folder (%APPDATA%\com.bobinestyle.app, ~/.local/share/...).
+    let data_dir = app.path().app_data_dir().unwrap_or_default();
     if cfg!(debug_assertions) {
         let dir = engine_dir();
         match Command::new("uv")
@@ -239,6 +242,7 @@ fn spawn_sidecar(app: &tauri::AppHandle, port: u16, token: &str) -> Option<Child
             ])
             .current_dir(&dir)
             .env("BOBINESTYLE_TOKEN", token)
+            .env("BOBINESTYLE_DATA", &data_dir)
             .spawn()
         {
             Ok(child) => {
@@ -266,6 +270,7 @@ fn spawn_sidecar(app: &tauri::AppHandle, port: u16, token: &str) -> Option<Child
         match Command::new(&exe)
             .args(["serve", "--port", &port, "--parent-pid", &parent_pid])
             .env("BOBINESTYLE_TOKEN", token)
+            .env("BOBINESTYLE_DATA", &data_dir)
             .spawn()
         {
             Ok(child) => {

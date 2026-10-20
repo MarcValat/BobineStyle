@@ -25,11 +25,12 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from bobinestyle import __version__
 from bobinestyle.batch import OUTPUT_DIR, find_videos
 from bobinestyle.ffmpeg_backend import FFmpegError
-from bobinestyle.fonts import system_fonts
+from bobinestyle.fonts import font_families, system_fonts
 from bobinestyle.i18n import LANGUAGES, set_language, tr
 from bobinestyle.jobs import get_job, start_job
 from bobinestyle.languages import normalize
 from bobinestyle.mux import DEFAULT_LANGUAGES, MuxError, MuxPlan, default_output, mux, plan
+from bobinestyle.styles import HOUSE, SubtitleStyle, read_styles, write_styles
 
 app = FastAPI(title="Bobine Style", version=__version__)
 
@@ -254,11 +255,19 @@ class PlanModel(BaseModel):
 
 
 class LanguagesModel(BaseModel):
-    """The subtitles' languages to restyle (ISO 639-2 codes, "fre"), and
-    the one whose track becomes the default one (the first when absent)."""
+    """The subtitles' languages to restyle (ISO 639-2 codes, "fre"), the
+    one whose track becomes the default one (the first when absent), and
+    the style they get (the house style when absent: see styles.py)."""
 
     languages: list[str] = list(DEFAULT_LANGUAGES)
     default_language: str | None = None
+    style: dict | None = None
+
+    def subtitle_style(self) -> SubtitleStyle:
+        try:
+            return SubtitleStyle.of(self.style) if self.style is not None else HOUSE
+        except (ValueError, TypeError) as exc:
+            raise HTTPException(400, tr("Style invalide : {error}", error=exc)) from exc
 
 
 class PlanRequest(LanguagesModel):
@@ -270,7 +279,66 @@ def plan_file(req: PlanRequest) -> PlanModel:
     """What processing ``path`` would do, without writing anything."""
     if not Path(req.path).is_file():
         raise HTTPException(400, tr("Fichier introuvable : {path}", path=req.path))
-    return PlanModel.of(plan(req.path, tuple(req.languages), req.default_language))
+    return PlanModel.of(plan(req.path, tuple(req.languages), req.default_language, req.subtitle_style()))
+
+
+# --- styles ------------------------------------------------------------------
+
+
+class StylesModel(BaseModel):
+    styles: list[dict]
+
+
+def _styles(data: list[dict]) -> list[SubtitleStyle]:
+    try:
+        return [SubtitleStyle.of(item) for item in data]
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(400, tr("Style invalide : {error}", error=exc)) from exc
+
+
+@app.get("/styles", response_model=StylesModel)
+def get_styles() -> StylesModel:
+    """The user's own styles (the house style is the app's, built in)."""
+    try:
+        return StylesModel(styles=[s.to_json() for s in read_styles()])
+    except ValueError as exc:
+        raise HTTPException(400, tr("Styles illisibles : {error}", error=exc)) from exc
+
+
+@app.put("/styles", status_code=204)
+def put_styles(req: StylesModel) -> Response:
+    """Keeps the user's styles, all of them (written whole, or not at all)."""
+    write_styles(_styles(req.styles))
+    return Response(status_code=204)
+
+
+class StylesFileRequest(BaseModel):
+    path: str
+
+
+@app.post("/styles/import", response_model=StylesModel)
+def import_styles(req: StylesFileRequest) -> StylesModel:
+    """The styles of a file exported before (not kept: the app adds them)."""
+    try:
+        return StylesModel(styles=[s.to_json() for s in read_styles(Path(req.path))])
+    except ValueError as exc:
+        raise HTTPException(400, tr("Styles illisibles : {error}", error=exc)) from exc
+
+
+class StylesExportRequest(StylesModel):
+    path: str
+
+
+@app.post("/styles/export", status_code=204)
+def export_styles(req: StylesExportRequest) -> Response:
+    write_styles(_styles(req.styles), Path(req.path))
+    return Response(status_code=204)
+
+
+@app.get("/fonts")
+def fonts() -> dict[str, list[str]]:
+    """The font families installed: a style's font is picked among them."""
+    return {"fonts": font_families()}
 
 
 # --- jobs --------------------------------------------------------------------
@@ -287,9 +355,11 @@ class MuxRequest(LanguagesModel):
 
 @app.post("/jobs/mux", response_model=JobStarted)
 def start_mux(req: MuxRequest) -> JobStarted:
+    style = req.subtitle_style()
+
     def run(log, progress):
         log(tr("Analyse des pistes…"))
-        p = plan(req.source, tuple(req.languages), req.default_language)
+        p = plan(req.source, tuple(req.languages), req.default_language, style)
         if not p.chosen:
             raise MuxError(tr("aucune piste de sous-titres dans les langues choisies"))
         log(tr("Remux…"))
