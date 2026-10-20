@@ -45,3 +45,7 @@ export function shortcutKey(e: KeyboardEvent): boolean {
   if (target.isContentEditable || target.closest("input, textarea, select, button, a, [role=listbox], [role=option]")) return false;
   return true;
 }
+
+/** A typed field's props: no list of earlier entries under it (the
+ * WebView's autofill) and no spelling underlines. From Bobine Audio. */
+export const FIELD_PROPS = { autoComplete: "off", spellCheck: false } as const;

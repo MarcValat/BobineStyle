@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { cancelJob, expandPaths, planFile, planOutputs, startMux, type Languages, type MuxResult } from "./api";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { cancelJob, expandPaths, planFile, planOutputs, startMux, type MuxResult, type Processing } from "./api";
 import {
   BatchFooter,
   isAlreadyDone,
@@ -33,6 +33,8 @@ import {
   useListCollapsed,
   useRecursive,
 } from "./settings";
+import { HOUSE_STYLE, loadStyles, saveListStyle, styleNamed, useListStyle, useStyles } from "./styles";
+import { StylesDialog } from "./StylesDialog";
 import { devParam, errorMessage } from "./util";
 import { EmptyWorkspace, FoldButton, ListRow, MoveButtons, RemoveAllButton, useListKeys } from "./Workspace";
 import "./BatchView.css";
@@ -64,9 +66,27 @@ export function StyleBatch() {
   const languages = useLanguages();
   const defaultChoice = useDefaultLanguage();
   const defaultLanguage = defaultChoice && languages.includes(defaultChoice) ? defaultChoice : (languages[0] ?? null);
-  const picked: Languages = useMemo(() => ({ languages, default_language: defaultLanguage }), [languages, defaultLanguage]);
-  const pickedRef = useRef(picked);
-  pickedRef.current = picked;
+  // The styles: the list's, and one picked for a file in its detail.
+  const customStyles = useStyles();
+  const listStyle = useListStyle();
+  const [styleOverrides, setStyleOverrides] = useState<Record<string, string>>({});
+  const [stylesOpen, setStylesOpen] = useState(false);
+  useEffect(() => {
+    loadStyles();
+  }, []);
+
+  /** What `path` is processed with now: the languages and its style. */
+  const processingOf = useCallback(
+    (path: string): Processing => {
+      const style = styleNamed(customStyles, styleOverrides[path] ?? listStyle);
+      return { languages, default_language: defaultLanguage, style: style.name ? style : null };
+    },
+    [languages, defaultLanguage, customStyles, styleOverrides, listStyle],
+  );
+  const processingRef = useRef(processingOf);
+  processingRef.current = processingOf;
+  // What each file was last read with: read again when that changes.
+  const readKeys = useRef(new Map<string, string>());
   const cancelled = useRef(false);
   const filesRef = useRef(files);
   filesRef.current = files;
@@ -75,17 +95,22 @@ export function StyleBatch() {
     setFiles((fs) => fs.map((f) => (f.path === path ? { ...f, ...(typeof patch === "function" ? patch(f) : patch) } : f)));
   }, []);
 
-  /** Reads what processing `path` does, in the languages chosen now. */
+  /** Reads what processing `path` does, with what it's processed with now. */
   const readPlan = useCallback(
     (path: string) => {
-      const languages = pickedRef.current;
-      PLANNING(() => planFile(path, languages))
+      const processing = processingRef.current(path);
+      const key = JSON.stringify(processing);
+      readKeys.current.set(path, key);
+      update(path, { status: "planning", error: undefined });
+      PLANNING(() => planFile(path, processing))
         .then((plan) => {
-          // Chosen again meanwhile: the newer reading wins.
-          if (pickedRef.current !== languages) return;
+          // Changed again meanwhile: the newer reading wins.
+          if (readKeys.current.get(path) !== key) return;
           update(path, { plan, status: plan.tracks.some((track) => track.chosen) ? "ready" : "nothing" });
         })
-        .catch((e) => update(path, { status: "plan_error", error: errorMessage(e) }));
+        .catch((e) => {
+          if (readKeys.current.get(path) === key) update(path, { status: "plan_error", error: errorMessage(e) });
+        });
     },
     [update],
   );
@@ -106,23 +131,21 @@ export function StyleBatch() {
       const added = [...new Set(found)].filter((p) => !known.has(p));
       if (found.length === 0) setAddError(t.add.noMkv);
       if (added.length === 0) return;
+      // Each read at once (see the effect reading the files).
       setFiles((fs) => [...fs, ...added.map((path) => ({ path, status: "planning" as const }))]);
-      for (const path of added) readPlan(path);
     },
-    [readPlan, t],
+    [t],
   );
 
-  // Other languages, another default: every file read again (not while
-  // processing: the settings bar waits for it).
-  const pickedKey = `${languages.join(",")}|${defaultLanguage}`;
-  const readWith = useRef(pickedKey);
+  // Every file read as it's added, and again when what it's processed with
+  // changes (languages, its style, that style edited) -- not while
+  // processing: the settings wait for it.
   useEffect(() => {
-    if (readWith.current === pickedKey) return;
-    readWith.current = pickedKey;
-    const paths = filesRef.current.map((f) => f.path);
-    setFiles((fs) => fs.map((f) => ({ ...f, status: "planning", error: undefined, log: [] })));
-    paths.forEach(readPlan);
-  }, [pickedKey, readPlan]);
+    if (running) return;
+    for (const f of files) {
+      if (readKeys.current.get(f.path) !== JSON.stringify(processingOf(f.path))) readPlan(f.path);
+    }
+  }, [files, running, processingOf, readPlan]);
 
   const dropBlocked = running ? t.add.dropBlocked : null;
   // Dropped paths come expanded already (FileDrop, with the same setting).
@@ -194,7 +217,7 @@ export function StyleBatch() {
           update(path, { status: "running" });
           try {
             const result = await runJob<MuxResult>(
-              startMux(path, output, pickedRef.current),
+              startMux(path, output, processingRef.current(path)),
               (message) => update(path, (f) => ({ log: [...(f.log ?? []), message] })),
               (jobId) => update(path, { jobId }),
               (progress) => update(path, { progress }),
@@ -300,6 +323,19 @@ export function StyleBatch() {
                 disabled={running}
               />
             </span>
+            <span className="config-field">
+              {t.styles.label}
+              <Select
+                label={t.styles.label}
+                value={styleNamed(customStyles, listStyle).name}
+                options={[HOUSE_STYLE, ...customStyles].map((s) => ({ value: s.name, label: s.name || t.styles.house }))}
+                onChange={saveListStyle}
+                disabled={running}
+              />
+            </span>
+            <button className="small-button" onClick={() => setStylesOpen(true)}>
+              {t.styles.edit}
+            </button>
             <InfoTip>{t.languages.hint}</InfoTip>
           </div>
 
@@ -313,6 +349,8 @@ export function StyleBatch() {
                   onRemove={() => {
                     setFiles([]);
                     setAddError(null);
+                    setStyleOverrides({});
+                    readKeys.current.clear();
                   }}
                 />
                 <FoldButton collapsed={collapsed} />
@@ -354,7 +392,25 @@ export function StyleBatch() {
               </button>
             </section>
 
-            {current && <FileDetail file={current} running={running} primary={files.length === 1} onRun={() => run([current])} />}
+            {current && (
+              <FileDetail
+                file={current}
+                running={running}
+                primary={files.length === 1}
+                onRun={() => run([current])}
+                styles={customStyles}
+                listStyle={listStyle}
+                styleOverride={styleOverrides[current.path] ?? null}
+                onStyleChange={(name) =>
+                  setStyleOverrides((o) => {
+                    const next = { ...o };
+                    if (name === null) delete next[current.path];
+                    else next[current.path] = name;
+                    return next;
+                  })
+                }
+              />
+            )}
           </div>
 
           <BatchFooter
@@ -379,6 +435,7 @@ export function StyleBatch() {
           />
         </>
       )}
+      {stylesOpen && <StylesDialog onClose={() => setStylesOpen(false)} />}
       <DropOverlay drag={fileDrag} blocked={dropBlocked} label={t.add.dropToAdd} hint={recursive ? t.add.dropRecursive : undefined} />
     </main>
   );

@@ -1,6 +1,7 @@
 // Client for the engine sidecar (engine/src/bobinestyle/server.py).
 import { engineHeaders, engineReady, getEngineToken, getEngineUrl } from "./engine";
 import { t } from "./i18n";
+import type { SubtitleStyle } from "./styles";
 
 export interface PlannedTrack {
   index: number;
@@ -37,9 +38,15 @@ export interface Plan {
 
 /** The subtitles' languages to restyle, and the one whose track becomes
  * the default (null: the first). */
-export interface Languages {
+interface Languages {
   languages: string[];
   default_language: string | null;
+}
+
+/** What a file is processed with: the languages, and the style (null:
+ * the house style). */
+export interface Processing extends Languages {
+  style: SubtitleStyle | null;
 }
 
 export interface Output {
@@ -98,12 +105,35 @@ export async function setEngineLanguage(language: string): Promise<void> {
   });
 }
 
-export async function planFile(path: string, languages: Languages): Promise<Plan> {
-  return (await postJson("/plan", { path, ...languages })).json();
+export async function planFile(path: string, processing: Processing): Promise<Plan> {
+  return (await postJson("/plan", { path, ...processing })).json();
 }
 
-export async function startMux(source: string, output: string, languages: Languages): Promise<string> {
-  return (await (await postJson("/jobs/mux", { source, output, ...languages })).json()).job_id;
+export async function startMux(source: string, output: string, processing: Processing): Promise<string> {
+  return (await (await postJson("/jobs/mux", { source, output, ...processing })).json()).job_id;
+}
+
+/** The user's own styles (styles.json, see the engine's styles.py). */
+export async function getStyles(): Promise<SubtitleStyle[]> {
+  return (await (await engineFetch("/styles")).json()).styles;
+}
+
+export async function putStyles(styles: SubtitleStyle[]): Promise<void> {
+  await engineFetch("/styles", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ styles }) });
+}
+
+/** The styles of a file exported before. */
+export async function importStyles(path: string): Promise<SubtitleStyle[]> {
+  return (await (await postJson("/styles/import", { path })).json()).styles;
+}
+
+export async function exportStyles(path: string, styles: SubtitleStyle[]): Promise<void> {
+  await postJson("/styles/export", { path, styles });
+}
+
+/** The font families installed on this computer. */
+export async function getFonts(): Promise<string[]> {
+  return (await (await engineFetch("/fonts")).json()).fonts;
 }
 
 export async function cancelJob(jobId: string): Promise<void> {

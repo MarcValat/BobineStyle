@@ -7,6 +7,8 @@ import { Tooltip } from "./InfoTip";
 import { LogPanel } from "./LogPanel";
 import { languageName } from "./languages";
 import { basename } from "./paths";
+import { Select } from "./Dropdown";
+import { HOUSE_STYLE, styleNamed, type SubtitleStyle } from "./styles";
 
 /** The selected file's detail (Workspace.css, after Bobine Audio's
  * Detail.tsx): its header with its buttons, what processing it does --
@@ -17,6 +19,10 @@ export function FileDetail({
   running,
   primary,
   onRun,
+  styles,
+  listStyle,
+  styleOverride,
+  onStyleChange,
 }: {
   file: FileItem;
   /** Something runs: nothing starts. */
@@ -24,9 +30,20 @@ export function FileDetail({
   /** It's alone in the list: its button is the window's main one. */
   primary: boolean;
   onRun: () => void;
+  /** The user's styles, the list's (by name, "" the house style), and the
+   * one picked for this file (null: the list's). */
+  styles: SubtitleStyle[];
+  listStyle: string;
+  styleOverride: string | null;
+  onStyleChange: (name: string | null) => void;
 }) {
   const t = useT();
   const plan = file.plan;
+  const style = styleNamed(styles, styleOverride ?? listStyle);
+  const listName = styleNamed(styles, listStyle).name || t.styles.house;
+  // The style picker's choices: the list's, then each style by name (a
+  // style's name never starts with a space: the dialog trims it).
+  const LIST = " list";
   const chosen = plan?.tracks.filter((track) => track.chosen) ?? [];
   const defaultName = plan?.default_language ? t.languages.inSentence(languageName(plan.default_language)) : null;
   const hasDefault = chosen.some((track) => track.language === plan?.default_language);
@@ -88,8 +105,17 @@ export function FileDetail({
 
             <div className="detail-style">
               <span className="detail-style-label">{t.detail.style}</span>
-              <span className="detail-style-name">{t.detail.houseStyle}</span>
-              <span className="detail-style-summary">{t.detail.houseStyleSummary}</span>
+              <Select
+                label={t.detail.style}
+                value={styleOverride ?? LIST}
+                options={[
+                  { value: LIST, label: t.styles.ofTheList(listName) },
+                  ...[HOUSE_STYLE, ...styles].map((s) => ({ value: s.name, label: s.name || t.styles.house })),
+                ]}
+                onChange={(value) => onStyleChange(value === LIST ? null : value)}
+                disabled={running}
+              />
+              <span className="detail-style-summary">{t.styles.summary(style)}</span>
               {plan.video_size && <span className="detail-style-scale">{t.detail.scaled(plan.video_size[0], plan.video_size[1])}</span>}
             </div>
 
@@ -104,7 +130,7 @@ export function FileDetail({
                   </tr>
                 </thead>
                 {plan.tracks.map((track) => (
-                  <TrackRows key={track.index} track={track} />
+                  <TrackRows key={track.index} track={track} styleName={style.name || t.styles.house} />
                 ))}
               </table>
             </div>
@@ -192,7 +218,7 @@ function RunStatus({ file }: { file: FileItem }) {
 }
 
 /** A track and its notes: one group, tinted as one in the table. */
-function TrackRows({ track }: { track: PlannedTrack }) {
+function TrackRows({ track, styleName }: { track: PlannedTrack; styleName: string }) {
   const t = useT();
   const current = [languageName(track.language), track.codec, track.title && t.detail.titled(track.title)].filter(Boolean).join(" · ");
   return (
@@ -207,7 +233,7 @@ function TrackRows({ track }: { track: PlannedTrack }) {
           {track.forced && <span className="pill">{t.detail.flagForced}</span>}
         </td>
         <td>
-          {t.detail.actions[track.action]}
+          {track.action === "restyle" ? t.detail.restyled(styleName) : t.detail.actions[track.action]}
           {!track.chosen && <span className="muted"> · {t.detail.notChosen}</span>}
           {track.dialogue_lines !== null && <span className="muted"> · {t.detail.lines(track.dialogue_lines)}</span>}
         </td>
