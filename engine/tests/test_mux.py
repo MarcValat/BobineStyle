@@ -11,19 +11,21 @@ from test_roles import _line, _script, _style
 from bobinestyle.ass import parse_ass
 from bobinestyle.ffmpeg_backend import extract_subtitle_text, probe_streams, resolve_ffmpeg, subtitle_streams
 from bobinestyle.fonts import faces_for, system_fonts
+from bobinestyle.languages import normalize, track_language, track_name
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 from bobinestyle.mux import (
-    FORCED_TITLE,
-    FULL_TITLE,
     MuxError,
     TrackPlan,
-    _is_french,
     _name_tracks,
+    _pick_default,
     default_audio,
     mux,
     plan,
     verify,
 )
+
+FULL_TITLE = "Français"
+FORCED_TITLE = "Français (forcé)"
 
 FULL = _script(
     [_style("Default"), _style("Italique", italic=1)],
@@ -150,7 +152,7 @@ def mkv(tmp_path: Path, request: pytest.FixtureRequest) -> Path:
 def test_plan_labels_french_tracks(mkv: Path):
     p = plan(str(mkv))
     english, full, signs = p.tracks
-    assert not english.french
+    assert not english.chosen and english.language == "eng"
     # No French audio: the full track is the default one.
     assert (full.kind, full.title, full.default, full.forced) == ("full", FULL_TITLE, True, False)
     assert (signs.kind, signs.title, signs.default, signs.forced) == ("forced", FORCED_TITLE, False, True)
@@ -206,22 +208,58 @@ def test_source_is_never_overwritten(mkv: Path):
         mux(plan(str(mkv)), mkv)
 
 
+def test_plan_in_several_languages(mkv: Path, tmp_path: Path):
+    # English too: its SRT restyled and named in English, never the
+    # default (French is the default language).
+    p = plan(str(mkv), ("fre", "eng"))
+    english, full, signs = p.tracks
+    assert (english.chosen, english.kind, english.title, english.default) == (True, "full", "English", False)
+    assert (full.title, full.default) == (FULL_TITLE, True)
+    out = mux(p, tmp_path / "both.mkv")
+    subs = subtitle_streams(probe_streams(str(out)))
+    assert [(s.language, s.title, s.default) for s in subs] == [
+        ("eng", "English", False),
+        ("fre", FULL_TITLE, True),
+        ("fre", FORCED_TITLE, False),
+    ]
+
+
+def test_default_language_picks_the_default_track(mkv: Path):
+    p = plan(str(mkv), ("fre", "eng"), "eng")
+    english, full, signs = p.tracks
+    assert english.default and not full.default and not signs.default
+    # English alone: the French tracks are copied as they are.
+    p = plan(str(mkv), ("eng",))
+    english, full, signs = p.tracks
+    assert english.chosen and english.default and not full.chosen and full.title is None
+
+
 def _sub(language: str | None, title: str | None = None) -> SubtitleStreamInfo:
     return SubtitleStreamInfo(0, 0, "ass", language, title, False, False)
 
 
-def test_french_detection():
-    assert _is_french(_sub("fre"), True)
-    assert not _is_french(_sub("eng"), False)
-    assert _is_french(_sub(None, "VF"), True)
-    assert not _is_french(_sub(None), True)  # undetermined beside a real French track
-    assert _is_french(_sub(None), False)  # the only candidate, as the old script assumed
+def test_track_language():
+    assert normalize("fra") == "fre" and normalize("de") == "ger" and normalize("ENG") == "eng"
+    assert track_language(_sub("fra"), None) == "fre"
+    assert track_language(_sub("eng"), "fre") == "eng"
+    assert track_language(_sub(None, "VF"), None) == "fre"
+    assert track_language(_sub(None, "English SDH"), "fre") == "eng"
+    assert track_language(_sub(None), None) is None  # undetermined beside a real track of the language
+    assert track_language(_sub(None), "fre") == "fre"  # the only candidate, as the old script assumed
+
+
+def test_track_names_in_their_own_language():
+    assert (track_name("fre", False), track_name("fre", True)) == (FULL_TITLE, FORCED_TITLE)
+    assert (track_name("eng", False), track_name("eng", True)) == ("English", "English (forced)")
+    assert track_name("ger", False) == "Deutsch"
+    assert track_name("tha", True) == "tha (forced)"  # not a known language: its code
 
 
 def _tracks(*kinds: str) -> list[TrackPlan]:
-    tracks = [TrackPlan(_sub("fre"), True) for _ in kinds]
+    tracks = [TrackPlan(_sub("fre"), "fre", True) for _ in kinds]
     for track, kind in zip(tracks, kinds):
         track.kind = kind
+    _name_tracks(tracks, "fre")
     return tracks
 
 
@@ -231,18 +269,19 @@ def _defaults(tracks: list[TrackPlan]) -> list[tuple[str, bool, bool]]:
 
 def test_default_subtitle_follows_default_audio():
     tracks = _tracks("full", "forced")
-    _name_tracks(tracks, audio_french=False)
+    _pick_default(tracks, audio_same=False)
     assert _defaults(tracks) == [("full", True, False), ("forced", False, True)]
-    _name_tracks(tracks, audio_french=True)
+    tracks = _tracks("full", "forced")
+    _pick_default(tracks, audio_same=True)
     assert _defaults(tracks) == [("full", False, False), ("forced", True, True)]
 
 
 def test_default_subtitle_when_a_kind_is_missing():
     only_full = _tracks("full")
-    _name_tracks(only_full, audio_french=True)
+    _pick_default(only_full, audio_same=True)
     assert _defaults(only_full) == [("full", False, False)]  # French audio needs no full subtitles
     only_forced = _tracks("forced")
-    _name_tracks(only_forced, audio_french=False)
+    _pick_default(only_forced, audio_same=False)
     assert _defaults(only_forced) == [("forced", True, True)]
 
 

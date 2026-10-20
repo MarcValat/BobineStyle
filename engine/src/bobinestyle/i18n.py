@@ -69,7 +69,7 @@ _EN: dict[str, str] = {
     # server
     "Fichier introuvable : {path}": "File not found: {path}",
     "Analyse des pistes…": "Reading the tracks…",
-    "aucune piste de sous-titres française": "no French subtitle track",
+    "aucune piste de sous-titres dans les langues choisies": "no subtitle track in the chosen languages",
     "Remux…": "Remuxing…",
     "Écrit et vérifié : {path}": "Written and checked: {path}",
     "Tâche inconnue : {job_id}": "Unknown task: {job_id}",

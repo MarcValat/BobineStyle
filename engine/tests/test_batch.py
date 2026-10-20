@@ -69,7 +69,7 @@ def test_batch_mirrors_the_tree_and_keeps_going(series: Path):
     assert _statuses(results) == {
         "S01/E01.mkv": Status.DONE,
         "S01/E02.mkv": Status.DONE,
-        "S02/E01.mkv": Status.NO_FRENCH,
+        "S02/E01.mkv": Status.NO_SUBTITLES,
         "S02/E02.mkv": Status.ERROR,
     }
     assert (series / "Output" / "S01" / "E01.mkv").is_file()
@@ -115,4 +115,4 @@ def test_cli_batch(series: Path):
     result = CliRunner().invoke(main, ["batch", str(series), "-r", "-j", "1"])
     assert result.exit_code == 1  # the broken file
     assert "✓ S01" in result.output and "✗ S02" in result.output
-    assert "Bilan : 2 traité(s), 1 sans sous-titres français, 1 en erreur" in result.output
+    assert "Bilan : 2 traité(s), 1 sans sous-titres dans ces langues, 1 en erreur" in result.output

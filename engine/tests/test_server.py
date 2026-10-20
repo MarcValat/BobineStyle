@@ -58,10 +58,23 @@ def test_outputs(series: Path, tmp_path: Path):  # noqa: F811
 def test_plan(mkv: Path):  # noqa: F811
     plan = client.post("/plan", json={"path": str(mkv)}).json()
     english, full, signs = plan["tracks"]
-    assert (english["french"], english["action"], english["default"]) == (False, "copy", False)
+    assert (english["chosen"], english["action"], english["default"]) == (False, "copy", False)
     assert (full["new_title"], full["action"], full["default"]) == ("Français", "restyle", True)
     assert (signs["kind"], signs["forced"]) == ("forced", True)
     assert client.post("/plan", json={"path": str(mkv) + ".nope"}).status_code == 400
+
+
+def test_plan_in_chosen_languages(mkv: Path):  # noqa: F811
+    plan = client.post("/plan", json={"path": str(mkv), "languages": ["fre", "eng"], "default_language": "eng"}).json()
+    english, full, _ = plan["tracks"]
+    assert (english["chosen"], english["new_title"], english["action"], english["default"]) == (
+        True,
+        "English",
+        "convert",
+        True,
+    )
+    assert (full["chosen"], full["default"]) == (True, False)
+    assert plan["default_language"] == "eng"
 
 
 def test_mux_job_reports_progress_and_result(mkv: Path, tmp_path: Path):  # noqa: F811

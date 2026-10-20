@@ -1,6 +1,6 @@
 # bobinestyle engine
 
-Python engine of Bobine Style: applies the house style to the French subtitles of an MKV (ASS restyled, SRT converted), names and flags the full and forced tracks, attaches the fonts they use, and remuxes the file with everything else copied untouched.
+Python engine of Bobine Style: applies the house style to the subtitles of an MKV in the chosen languages (French by default; ASS restyled, SRT converted), names the full and forced tracks in their own language ("Français", "English (forced)") and flags them, attaches the fonts they use, and remuxes the file with everything else copied untouched.
 
 ```
 uv sync
@@ -19,6 +19,7 @@ uv run bobinestyle batch Series/ -r            # every MKV of a folder and its s
 uv run bobinestyle serve                       # the app's local HTTP server (docs: /docs)
 ```
 
+- `mux` and `batch`: `--langues fre,eng` the subtitles' languages (ISO 639-2), `--defaut eng` the one whose track becomes the default (the first otherwise).
 - `batch`: `-o` another output folder, `-j` files at a time (2), `--force` redo files already in the output, `--plan` / `--details` show without writing.
 - The source file is never modified: outputs are written as `.part.mkv`, checked against the source (streams, codecs, duration, Dolby Vision), then renamed.
 - `serve` listens on `127.0.0.1:8758` only, out of other machines' reach, but this machine's other programs and the websites open in its browser could call it. So with `BOBINESTYLE_TOKEN` set, every request must carry it back in the `X-Bobine-Token` header (a WebSocket, which takes no header, in its address's `token` parameter), 401 otherwise; `/health` alone answers without it. The app makes a new one at each launch (`app/src-tauri/src/lib.rs`), `bobine-dev` in dev builds. Only the app's pages may read the answers (CORS): the Tauri window, the dev server (`http://localhost:1420`) and any origin `BOBINESTYLE_ORIGINS` adds (comma-separated). Run by hand without `BOBINESTYLE_TOKEN`, it asks for no token.
@@ -29,7 +30,8 @@ uv run bobinestyle serve                       # the app's local HTTP server (do
 - `roles.py`: a style's role from its lines' usage (plain dialogue or typesetting tags), then its look (italic, top, dashes, overlap, margins).
 - `style.py`: the house style written into the script's grid, kept when lines carry positions or sizes of their own; only style lines and a few headers change, plus the margin centring dash blocks that have none.
 - `srt.py`: SRT cues to ASS lines with their role; `measure.py` measures text with the real font (Pillow) to centre dash blocks.
-- `mux.py`: the plan (French tracks, full/forced, default track from the default audio, fonts to attach) and the ffmpeg remux (`-copyts`: extracted tracks keep the container's timestamps).
+- `languages.py`: language codes made one ("fra" -> "fre"), an untagged track's language from its title, track names in their own language.
+- `mux.py`: the plan (the chosen languages' tracks, full/forced per language, default track from the default audio, fonts to attach) and the ffmpeg remux (`-copyts`: extracted tracks keep the container's timestamps).
 - `server.py` + `jobs.py`: FastAPI sidecar for the app; remuxes run as cancellable jobs streaming progress over WebSocket.
 - `i18n.py`: what the user reads (plan notes, warnings, job logs, errors) in French or English, `tr()` on French templates; the app sets the language through `POST /language`, the CLI stays French.
 - `packaging/`: PyInstaller build of the sidecar for the app's installer.

@@ -8,8 +8,10 @@ import pytest
 from bobinestyle.ass import parse_ass
 from bobinestyle.ffmpeg_backend import extract_subtitle_text, probe_streams, resolve_ffmpeg, subtitle_streams
 from bobinestyle.fonts import faces_for, system_fonts
-from bobinestyle.mux import FULL_TITLE, mux, plan
+from bobinestyle.mux import mux, plan
 from bobinestyle.srt import Cue, html_to_ass, parse_srt, srt_to_ass
+
+FULL_TITLE = "Français"
 
 DEMO = """﻿1
 00:00:27,920 --> 00:00:29,840

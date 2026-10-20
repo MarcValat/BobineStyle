@@ -28,7 +28,8 @@ from bobinestyle.ffmpeg_backend import FFmpegError
 from bobinestyle.fonts import system_fonts
 from bobinestyle.i18n import LANGUAGES, set_language, tr
 from bobinestyle.jobs import get_job, start_job
-from bobinestyle.mux import FRENCH_CODES, MuxError, MuxPlan, default_output, mux, plan
+from bobinestyle.languages import normalize
+from bobinestyle.mux import DEFAULT_LANGUAGES, MuxError, MuxPlan, default_output, mux, plan
 
 app = FastAPI(title="Bobine Style", version=__version__)
 
@@ -176,10 +177,13 @@ def exists(path: str) -> dict[str, bool]:
 class TrackModel(BaseModel):
     index: int
     codec: str
+    # Its language: its tag normalized ("fra" -> "fre"), or guessed from
+    # its title when untagged.
     language: str | None
     title: str | None
-    french: bool
-    # French tracks only.
+    # One of the chosen languages: restyled and named.
+    chosen: bool
+    # Chosen tracks only.
     kind: str | None
     new_title: str | None
     default: bool
@@ -192,7 +196,8 @@ class TrackModel(BaseModel):
 class AudioModel(BaseModel):
     language: str | None
     title: str | None
-    french: bool
+    # In the default subtitles' language: their forced track is the default.
+    same: bool
 
 
 class PlanModel(BaseModel):
@@ -204,13 +209,14 @@ class PlanModel(BaseModel):
     fonts_present: list[str]
     fonts_missing: list[str]
     warnings: list[str]
+    default_language: str | None
 
     @classmethod
     def of(cls, p: MuxPlan) -> PlanModel:
         tracks = []
         for t in p.tracks:
             s = t.stream
-            if not t.french or t.text is None:
+            if not t.chosen or t.text is None:
                 action = "copy"
             else:
                 action = "convert" if s.codec in ("subrip", "srt") else "restyle"
@@ -218,13 +224,13 @@ class PlanModel(BaseModel):
                 TrackModel(
                     index=s.index,
                     codec=s.codec,
-                    language=s.language,
+                    language=t.language,
                     title=s.title,
-                    french=t.french,
+                    chosen=t.chosen,
                     kind=t.kind,
                     new_title=t.title,
-                    default=t.default if t.french else s.default and not any(x.default for x in p.tracks if x.french),
-                    forced=t.forced if t.french else s.forced,
+                    default=t.default if t.chosen else s.default and not any(x.default for x in p.chosen),
+                    forced=t.forced if t.chosen else s.forced,
                     action=action,
                     dialogue_lines=t.dialogue_lines,
                     notes=t.notes,
@@ -232,7 +238,8 @@ class PlanModel(BaseModel):
             )
         audio = None
         if p.audio is not None:
-            audio = AudioModel(language=p.audio.language, title=p.audio.title, french=p.audio.language in FRENCH_CODES)
+            language = normalize(p.audio.language)
+            audio = AudioModel(language=language, title=p.audio.title, same=language == p.default_language)
         return cls(
             path=p.source,
             video_size=p.video_size,
@@ -242,10 +249,19 @@ class PlanModel(BaseModel):
             fonts_present=p.fonts_present,
             fonts_missing=p.fonts_missing,
             warnings=p.warnings,
+            default_language=p.default_language,
         )
 
 
-class PlanRequest(BaseModel):
+class LanguagesModel(BaseModel):
+    """The subtitles' languages to restyle (ISO 639-2 codes, "fre"), and
+    the one whose track becomes the default one (the first when absent)."""
+
+    languages: list[str] = list(DEFAULT_LANGUAGES)
+    default_language: str | None = None
+
+
+class PlanRequest(LanguagesModel):
     path: str
 
 
@@ -254,7 +270,7 @@ def plan_file(req: PlanRequest) -> PlanModel:
     """What processing ``path`` would do, without writing anything."""
     if not Path(req.path).is_file():
         raise HTTPException(400, tr("Fichier introuvable : {path}", path=req.path))
-    return PlanModel.of(plan(req.path))
+    return PlanModel.of(plan(req.path, tuple(req.languages), req.default_language))
 
 
 # --- jobs --------------------------------------------------------------------
@@ -264,7 +280,7 @@ class JobStarted(BaseModel):
     job_id: str
 
 
-class MuxRequest(BaseModel):
+class MuxRequest(LanguagesModel):
     source: str
     output: str
 
@@ -273,9 +289,9 @@ class MuxRequest(BaseModel):
 def start_mux(req: MuxRequest) -> JobStarted:
     def run(log, progress):
         log(tr("Analyse des pistes…"))
-        p = plan(req.source)
-        if not any(t.french for t in p.tracks):
-            raise MuxError(tr("aucune piste de sous-titres française"))
+        p = plan(req.source, tuple(req.languages), req.default_language)
+        if not p.chosen:
+            raise MuxError(tr("aucune piste de sous-titres dans les langues choisies"))
         log(tr("Remux…"))
         written = mux(p, req.output, progress)
         log(tr("Écrit et vérifié : {path}", path=written))
