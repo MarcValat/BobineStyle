@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -35,6 +36,28 @@ def resolve_ffmpeg() -> str:
         raise FFmpegError(tr("ffmpeg introuvable : ni sur le PATH, ni via le paquet imageio-ffmpeg.")) from exc
 
 
+def _child_env(environ: dict[str, str], frozen: bool) -> dict[str, str] | None:
+    """The environment ffmpeg runs in: the system's own, not the one a
+    PyInstaller build gives itself on Linux, whose LD_LIBRARY_PATH points at
+    the libraries bundled with the engine. The system's ffmpeg (preferred
+    over the bundled one, see resolve_ffmpeg) then loads the bundle's older
+    libstdc++ and fails at once ("GLIBCXX_3.4.32 not found", ffmpeg 8 on
+    Ubuntu 26.04): no stream in its report, every file unreadable. PyInstaller
+    keeps the original value in LD_LIBRARY_PATH_ORIG. ``None`` (inherit as
+    is) when not frozen, and on Windows. From Bobine Audio."""
+    if not frozen or sys.platform == "win32":
+        return None
+    env = dict(environ)
+    original = env.pop("LD_LIBRARY_PATH_ORIG", None)
+    if original is None:
+        env.pop("LD_LIBRARY_PATH", None)
+    else:
+        env["LD_LIBRARY_PATH"] = original
+    return env
+
+
+_CHILD_ENV = _child_env(dict(os.environ), getattr(sys, "frozen", False))
+
 # How often a running ffmpeg checks for a cancellation.
 _CANCEL_POLL_S = 0.2
 _TOTAL_SIZE_RE = re.compile(rb"^total_size=(\d+)")
@@ -43,19 +66,19 @@ _TOTAL_SIZE_RE = re.compile(rb"^total_size=(\d+)")
 def _run(
     cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None] | None = None
 ) -> subprocess.CompletedProcess[bytes]:
-    """Run ffmpeg, killing it (raising ``Cancelled``) as soon as the job
-    running it is cancelled. With ``on_size``, ffmpeg reports how far it
+    """Run ffmpeg in the system's environment (see _child_env), killing it
+    (raising ``Cancelled``) as soon as the job running it is cancelled. With ``on_size``, ffmpeg reports how far it
     got (bytes written) as it goes: its output time is often unknown
     ("N/A") when copying with -copyts and attachments."""
     event = current_cancel_event()
     if event is None and on_size is None:
-        return subprocess.run(cmd, cwd=cwd, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
+        return subprocess.run(cmd, cwd=cwd, env=_CHILD_ENV, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
     if event is not None and event.is_set():
         raise Cancelled()
     if on_size is not None:
         cmd = [cmd[0], "-progress", "pipe:1", "-nostats", *cmd[1:]]
     with subprocess.Popen(
-        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_SUBPROCESS_FLAGS
+        cmd, cwd=cwd, env=_CHILD_ENV, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_SUBPROCESS_FLAGS
     ) as proc:
         out: list[bytes] = []
         err: list[bytes] = []
