@@ -367,6 +367,8 @@
 .detail-header .detail-icon-button svg {
   width: 16px;
   height: 16px;
+  /* Alone in its button: no room for words after it. */
+  margin-right: 0;
 }
 
 /* Under the header: the tabs, then the tracks beside the chart, then the
@@ -1102,6 +1104,12 @@
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+}
+
+/* A narrow window: the cells wrap between words rather than run out of
+   the frame. */
+.file-detail .detail-tracks-table td {
+  white-space: normal;
 }
 
 .file-detail tr.dim td {

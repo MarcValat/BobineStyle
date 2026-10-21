@@ -29,7 +29,7 @@
   --surface-sunken: light-dark(#fbf8f6, #140d0c);
   --border: light-dark(rgba(60, 24, 10, 0.12), rgba(255, 255, 255, 0.08));
   --text: light-dark(#24150f, #f2e9e5);
-  --text-muted: light-dark(rgba(36, 21, 15, 0.66), #a8958d);
+  --text-muted: light-dark(rgba(36, 21, 15, 0.66), #b5a39b);
   /* Light: deep enough for 4.5:1 on white and on their own tints. */
   --danger: light-dark(#c42f41, #f47a87);
   --success: light-dark(#1a7f41, #4ade80);
@@ -39,7 +39,7 @@
   /* The same colors for text: darker in the light theme, where small text
      on a background tinted with its own color must keep 4.5:1. The fills,
      borders and lines use the ones above. */
-  --accent-text: light-dark(#a3401a, #ffb37a);
+  --accent-text: light-dark(#8f3714, #ffb37a);
   --success-text: light-dark(#126433, #4ade80);
   --drift-text: light-dark(#874700, #f59e0b);
   --radius: 14px;
