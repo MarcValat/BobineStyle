@@ -4,18 +4,28 @@ import { useT } from "./i18n";
 import { CloseIcon } from "./icons";
 import { Tooltip } from "./InfoTip";
 
-/** Escape runs `onEscape` (the latest one, however often it changes). */
+/** The dialogs open, the last one on top. */
+const openDialogs: object[] = [];
+
+/** Escape runs `onEscape` (the latest one, however often it changes) --
+ * only the top dialog's: one opened from another (a style's variant) closes
+ * alone. */
 function useEscape(onEscape: () => void): void {
   const latest = useRef(onEscape);
   latest.current = onEscape;
   useEffect(() => {
+    const self = {};
+    openDialogs.push(self);
     function onKey(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
+      if (e.key !== "Escape" || openDialogs[openDialogs.length - 1] !== self) return;
       e.preventDefault();
       latest.current();
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      openDialogs.splice(openDialogs.indexOf(self), 1);
+    };
   }, []);
 }
 
