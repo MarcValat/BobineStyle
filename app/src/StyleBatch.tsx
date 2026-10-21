@@ -127,12 +127,14 @@ export function StyleBatch() {
         setAddError(errorMessage(e));
         return;
       }
-      const known = new Set(filesRef.current.map((f) => f.path));
-      const added = [...new Set(found)].filter((p) => !known.has(p));
       if (found.length === 0) setAddError(t.add.noMkv);
-      if (added.length === 0) return;
-      // Each read at once (see the effect reading the files).
-      setFiles((fs) => [...fs, ...added.map((path) => ({ path, status: "planning" as const }))]);
+      // Each read at once (see the effect reading the files). Those listed
+      // meanwhile (two adds at once) are left out.
+      setFiles((fs) => {
+        const known = new Set(fs.map((f) => f.path));
+        const added = [...new Set(found)].filter((p) => !known.has(p));
+        return added.length ? [...fs, ...added.map((path) => ({ path, status: "planning" as const }))] : fs;
+      });
     },
     [t],
   );
