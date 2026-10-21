@@ -50,6 +50,7 @@ Les médias sont **synthétiques** (`e2e/make_media.py`, quelques secondes, refa
 | `layout` | chaque écran à 1024×640 et 1440×900, deux thèmes, deux langues : icônes centrées au pixel, hauteurs entières, arrondis concentriques, texte coupé ou hors fenêtre, boutons voisins, contraste 4,5:1 |
 | `a11y` | accessibilité (axe-core, WCAG 2.1 A / AA) des écrans et dialogues |
 | `visual` | les écrans principaux comparés à des captures de référence, enregistrées au premier passage sur chaque système (`e2e/__screenshots__/<système>`, hors git) ; après un changement voulu, `npm run test:e2e -- e2e/visual.spec.ts --update-snapshots` |
+| `docs` | pas un test : les captures de la documentation (`docs/screenshots`), deux langues, deux thèmes, sur une série de démonstration synthétique (`e2e/make_demo.py` : « Les Phares du Nord », des épisodes de 22 min, des répliques écrites pour l'occasion, rien de protégé), écrite dans `C:\Users\Public\Videos` sous Windows pour que le chemin de sortie montré ne nomme le dossier de personne (`DEMO_DIR` pour un autre) ; seulement sur demande : `DOCS=1 npm run test:e2e -- e2e/docs.spec.ts` (PowerShell : `$env:DOCS=1; npm run test:e2e -- e2e/docs.spec.ts`) |
 
 Chaque test échoue aussi sur une erreur du moteur (HTTP 4xx/5xx), de la page ou de la console, ou un fichier écrit à côté des médias. Hors de portée : la vraie fenêtre Tauri (barre de titre, dialogues natifs, glisser-déposer, WebView2 / WebKitGTK).
 
