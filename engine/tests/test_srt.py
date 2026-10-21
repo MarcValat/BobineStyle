@@ -8,8 +8,10 @@ import pytest
 from bobinestyle.ass import parse_ass
 from bobinestyle.ffmpeg_backend import extract_subtitle_text, probe_streams, resolve_ffmpeg, subtitle_streams
 from bobinestyle.fonts import faces_for, system_fonts
-from bobinestyle.mux import FULL_TITLE, mux, plan
+from bobinestyle.mux import mux, plan
 from bobinestyle.srt import Cue, html_to_ass, parse_srt, srt_to_ass
+
+FULL_TITLE = "Français"
 
 DEMO = """﻿1
 00:00:27,920 --> 00:00:29,840
@@ -53,7 +55,9 @@ def _events(text: str) -> list[tuple[str, str, str]]:
 
 
 def test_parse_srt_tolerates_quirks():
-    cues = parse_srt("1\r\n00:00:01,000 --> 00:00:02,500\r\nUn\r\n\r\nsuite\r\n\r\n2\r\n00:00:03.25 --> 00:00:04,000\r\nDeux\r\n")
+    cues = parse_srt(
+        "1\r\n00:00:01,000 --> 00:00:02,500\r\nUn\r\n\r\nsuite\r\n\r\n2\r\n00:00:03.25 --> 00:00:04,000\r\nDeux\r\n"
+    )
     assert cues == [Cue(1.0, 2.5, "Un\nsuite"), Cue(3.25, 4.0, "Deux")]
 
 
@@ -78,7 +82,12 @@ def test_each_cue_gets_its_house_style():
     assert doc.play_res == (1920, 1080) and doc.scaled_border_and_shadow
     assert [e.fields["start"] for e in doc.events[:2]] == ["0:00:27.92", "0:00:30.00"]
     assert {s.name for s in doc.styles} == {
-        "Default", "Italique", "DefaultTop", "TiretsDefault", "TiretsItalique", "Overlap",
+        "Default",
+        "Italique",
+        "DefaultTop",
+        "TiretsDefault",
+        "TiretsItalique",
+        "Overlap",
     }
     assert doc.style("Default").fields["fontsize"] == "66"
 
@@ -101,10 +110,28 @@ def test_mux_converts_french_srt(tmp_path: Path):
     mkv = tmp_path / "in.mkv"
     subprocess.run(
         [
-            resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
-            "-f", "lavfi", "-i", "color=c=black:s=192x108:r=5:d=95", "-i", str(srt),
-            "-map", "0", "-map", "1", "-c:v", "mpeg4", "-c:s", "copy",
-            "-metadata:s:s:0", "language=fre", str(mkv),
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=192x108:r=5:d=95",
+            "-i",
+            str(srt),
+            "-map",
+            "0",
+            "-map",
+            "1",
+            "-c:v",
+            "mpeg4",
+            "-c:s",
+            "copy",
+            "-metadata:s:s:0",
+            "language=fre",
+            str(mkv),
         ],
         check=True,
     )

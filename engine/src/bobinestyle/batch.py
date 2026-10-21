@@ -16,7 +16,7 @@ from pathlib import Path
 
 from bobinestyle.ffmpeg_backend import FFmpegError
 from bobinestyle.fonts import system_fonts
-from bobinestyle.mux import MuxError, MuxPlan, mux, plan
+from bobinestyle.mux import DEFAULT_LANGUAGES, MuxError, MuxPlan, mux, plan
 
 OUTPUT_DIR = "Output"
 
@@ -25,7 +25,7 @@ class Status(StrEnum):
     DONE = "done"
     PLANNED = "planned"
     EXISTS = "exists"
-    NO_FRENCH = "no_french"
+    NO_SUBTITLES = "no_subtitles"
     ERROR = "error"
 
 
@@ -60,13 +60,20 @@ def output_for(source: Path, folder: Path, output_dir: Path) -> Path:
     return output_dir / source.relative_to(folder)
 
 
-def process(source: Path, output: Path, plan_only: bool = False, force: bool = False) -> FileResult:
+def process(
+    source: Path,
+    output: Path,
+    plan_only: bool = False,
+    force: bool = False,
+    languages: tuple[str, ...] = DEFAULT_LANGUAGES,
+    default_language: str | None = None,
+) -> FileResult:
     if output.exists() and not force:
         return FileResult(source, output, Status.EXISTS)
     try:
-        p = plan(str(source))
-        if not any(t.french for t in p.tracks):
-            return FileResult(source, output, Status.NO_FRENCH, p)
+        p = plan(str(source), languages, default_language)
+        if not p.chosen:
+            return FileResult(source, output, Status.NO_SUBTITLES, p)
         if plan_only:
             return FileResult(source, output, Status.PLANNED, p)
         mux(p, output)
@@ -83,6 +90,8 @@ def run_batch(
     plan_only: bool = False,
     force: bool = False,
     on_result: Callable[[FileResult], None] | None = None,
+    languages: tuple[str, ...] = DEFAULT_LANGUAGES,
+    default_language: str | None = None,
 ) -> list[FileResult]:
     """Process every MKV of ``folder``; ``on_result`` hears about each file
     as it finishes. Results come back in file order."""
@@ -91,7 +100,7 @@ def run_batch(
     system_fonts()  # index the fonts once, before the workers need them
 
     def work(source: Path) -> FileResult:
-        result = process(source, output_for(source, folder, output_dir), plan_only, force)
+        result = process(source, output_for(source, folder, output_dir), plan_only, force, languages, default_language)
         if on_result:
             on_result(result)
         return result

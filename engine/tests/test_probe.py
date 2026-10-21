@@ -3,7 +3,14 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from bobinestyle.ffmpeg_backend import main_video, parse_streams, probe_streams, resolve_ffmpeg, subtitle_streams
+from bobinestyle.ffmpeg_backend import (
+    _child_env,
+    main_video,
+    parse_streams,
+    probe_streams,
+    resolve_ffmpeg,
+    subtitle_streams,
+)
 
 ANIME = """\
 Input #0, matroska,webm, from 'episode.mkv':
@@ -65,10 +72,32 @@ def test_probe_real_mkv(tmp_path: Path):
     out = tmp_path / "in.mkv"
     subprocess.run(
         [
-            resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
-            "-f", "lavfi", "-i", "color=c=black:s=72x58:r=5:d=3", "-i", str(srt),
-            "-map", "0", "-map", "1", "-vf", "setsar=64/45", "-c:v", "mpeg4", "-c:s", "copy",
-            "-metadata:s:s:0", "language=fre", "-metadata:s:s:0", "title=Français", str(out),
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=72x58:r=5:d=3",
+            "-i",
+            str(srt),
+            "-map",
+            "0",
+            "-map",
+            "1",
+            "-vf",
+            "setsar=64/45",
+            "-c:v",
+            "mpeg4",
+            "-c:s",
+            "copy",
+            "-metadata:s:s:0",
+            "language=fre",
+            "-metadata:s:s:0",
+            "title=Français",
+            str(out),
         ],
         check=True,
     )
@@ -76,3 +105,22 @@ def test_probe_real_mkv(tmp_path: Path):
     assert main_video(streams).display_size == (102, 58)
     [sub] = subtitle_streams(streams)
     assert (sub.codec, sub.language, sub.title) == ("subrip", "fre", "Français")
+
+
+def test_child_env_gives_ffmpeg_the_systems_libraries_back(monkeypatch):
+    """A Linux PyInstaller build points LD_LIBRARY_PATH at its own bundle:
+    the system's ffmpeg must not load the bundle's libstdc++."""
+    monkeypatch.setattr("sys.platform", "linux")
+    frozen = {"LD_LIBRARY_PATH": "/usr/lib/app/_internal", "LD_LIBRARY_PATH_ORIG": "/opt/lib", "HOME": "/home/u"}
+    assert _child_env(frozen, frozen=True) == {"LD_LIBRARY_PATH": "/opt/lib", "HOME": "/home/u"}
+    # None before launch: none for ffmpeg either.
+    assert _child_env({"LD_LIBRARY_PATH": "/usr/lib/app/_internal", "HOME": "/home/u"}, frozen=True) == {
+        "HOME": "/home/u"
+    }
+    # Not frozen (dev, tests): inherited as is.
+    assert _child_env(frozen, frozen=False) is None
+
+
+def test_child_env_leaves_windows_alone(monkeypatch):
+    monkeypatch.setattr("sys.platform", "win32")
+    assert _child_env({"PATH": "C:/ffmpeg"}, frozen=True) is None

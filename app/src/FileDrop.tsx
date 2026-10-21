@@ -1,28 +1,50 @@
 import { useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWebview, type DragDropEvent } from "@tauri-apps/api/webview";
+import { expandPaths } from "./api";
+import { loadRecursive } from "./settings";
 import "./FileDrop.css";
 
-/** Paths dragged from the explorer onto the window, while `enabled`:
- * `onDrop` gets them as dropped (files and folders). While `blocked`, the
- * overlay says why and a drop does nothing. Returns whether a drag is over
- * the window, for DropOverlay. */
-export function useFileDrop(enabled: boolean, blocked: string | null, onDrop: (paths: string[]) => void): boolean {
-  const [dragging, setDragging] = useState(false);
+/** Which half of the window files are dragged over (pairs mode drops the
+ * reference files on the left, the ones to correct on the right). */
+type DropSide = "left" | "right";
+
+/** Files being dragged over the window, and where. */
+interface FileDrag {
+  side: DropSide;
+}
+
+/** Files dragged from the explorer onto the window, while `enabled` (the
+ * view is on screen and no dialog covers it): `onDrop` gets the dropped
+ * files, a folder standing for its MKVs in name order (its seasons too
+ * when "Inclure les sous-dossiers" is on, see the
+ * engine's /paths/expand). While `blocked`, the overlay says why and a drop
+ * does nothing. Returns the drag in progress, for DropOverlay. */
+export function useFileDrop(enabled: boolean, blocked: string | null, onDrop: (files: string[], side: DropSide) => void): FileDrag | null {
+  const [drag, setDrag] = useState<FileDrag | null>(null);
   // The latest of each, without resubscribing on every render.
   const latest = useRef({ blocked, onDrop });
   latest.current = { blocked, onDrop };
 
   useEffect(() => {
     if (!enabled) return;
+    const sideAt = (x: number): DropSide => (x / window.devicePixelRatio < window.innerWidth / 2 ? "left" : "right");
     function handle(event: DragDropEvent) {
       if (event.type === "leave") {
-        setDragging(false);
+        setDrag(null);
       } else if (event.type === "enter" || event.type === "over") {
-        setDragging(true);
+        setDrag({ side: sideAt(event.position.x) });
       } else {
-        setDragging(false);
-        if (!latest.current.blocked && event.paths.length > 0) latest.current.onDrop(event.paths);
+        setDrag(null);
+        if (latest.current.blocked) return;
+        const side = sideAt(event.position.x);
+        expandPaths(event.paths, loadRecursive())
+          .then((files) => {
+            if (files.length > 0) latest.current.onDrop(files, side);
+          })
+          .catch(() => {
+            // the engine is down: nothing could be done with them anyway
+          });
       }
     }
 
@@ -33,7 +55,7 @@ export function useFileDrop(enabled: boolean, blocked: string | null, onDrop: (p
       window.addEventListener("bobinestyle:dragdrop", listener);
       return () => {
         window.removeEventListener("bobinestyle:dragdrop", listener);
-        setDragging(false);
+        setDrag(null);
       };
     }
 
@@ -48,31 +70,55 @@ export function useFileDrop(enabled: boolean, blocked: string | null, onDrop: (p
     return () => {
       gone = true;
       unlisten?.();
-      setDragging(false);
+      setDrag(null);
     };
   }, [enabled]);
 
-  return dragging;
+  return drag;
 }
 
-/** What dropping would do, over the whole window. */
+/** What dropping would do, over the whole window: one `label`, or two
+ * halves (`split`, left then right) with the one under the pointer lit. */
 export function DropOverlay({
-  dragging,
+  drag,
   blocked,
   label,
   hint,
+  split,
 }: {
-  dragging: boolean;
+  drag: FileDrag | null;
   blocked: string | null;
-  label: string;
+  label?: string;
   hint?: string;
+  split?: [string, string];
 }) {
-  if (!dragging) return null;
+  if (!drag) return null;
+  if (blocked) {
+    return (
+      <div className="drop-overlay">
+        <div className="drop-zone drop-zone-blocked">
+          <span className="drop-label">{blocked}</span>
+        </div>
+      </div>
+    );
+  }
+  if (split) {
+    return (
+      <div className="drop-overlay drop-overlay-split">
+        {split.map((text, i) => (
+          <div key={text} className={`drop-zone ${drag.side === (i === 0 ? "left" : "right") ? "drop-zone-active" : ""}`}>
+            <span className="drop-label">{text}</span>
+            {hint && <span className="drop-hint">{hint}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="drop-overlay">
-      <div className={`drop-zone ${blocked ? "drop-zone-blocked" : "drop-zone-active"}`}>
-        <span className="drop-label">{blocked ?? label}</span>
-        {!blocked && hint && <span className="drop-hint">{hint}</span>}
+      <div className="drop-zone drop-zone-active">
+        <span className="drop-label">{label}</span>
+        {hint && <span className="drop-hint">{hint}</span>}
       </div>
     </div>
   );

@@ -4,13 +4,14 @@ import threading
 import time
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+from test_batch import series  # noqa: F401 - fixture
+from test_mux import mkv  # noqa: F401 - fixture
 
 from bobinestyle.ffmpeg_backend import resolve_ffmpeg, run_checked
 from bobinestyle.jobs import start_job
 from bobinestyle.server import app
-from test_batch import series  # noqa: F401 - fixture
-from test_mux import mkv  # noqa: F401 - fixture
 
 client = TestClient(app)
 
@@ -31,7 +32,10 @@ def test_health():
 def test_expand_folders_and_files(series: Path):  # noqa: F811
     files = client.post("/paths/expand", json={"paths": [str(series)], "recursive": True}).json()["files"]
     assert [Path(f).relative_to(series).as_posix() for f in files] == [
-        "S01/E01.mkv", "S01/E02.mkv", "S02/E01.mkv", "S02/E02.mkv",
+        "S01/E01.mkv",
+        "S01/E02.mkv",
+        "S02/E01.mkv",
+        "S02/E02.mkv",
     ]
     single = client.post("/paths/expand", json={"paths": [files[0], files[0], str(series / "nope.mkv")]}).json()
     assert single["files"] == [files[0]]
@@ -54,10 +58,23 @@ def test_outputs(series: Path, tmp_path: Path):  # noqa: F811
 def test_plan(mkv: Path):  # noqa: F811
     plan = client.post("/plan", json={"path": str(mkv)}).json()
     english, full, signs = plan["tracks"]
-    assert (english["french"], english["action"], english["default"]) == (False, "copy", False)
+    assert (english["chosen"], english["action"], english["default"]) == (False, "copy", False)
     assert (full["new_title"], full["action"], full["default"]) == ("Français", "restyle", True)
     assert (signs["kind"], signs["forced"]) == ("forced", True)
     assert client.post("/plan", json={"path": str(mkv) + ".nope"}).status_code == 400
+
+
+def test_plan_in_chosen_languages(mkv: Path):  # noqa: F811
+    plan = client.post("/plan", json={"path": str(mkv), "languages": ["fre", "eng"], "default_language": "eng"}).json()
+    english, full, _ = plan["tracks"]
+    assert (english["chosen"], english["new_title"], english["action"], english["default"]) == (
+        True,
+        "English",
+        "convert",
+        True,
+    )
+    assert (full["chosen"], full["default"]) == (True, False)
+    assert plan["default_language"] == "eng"
 
 
 def test_mux_job_reports_progress_and_result(mkv: Path, tmp_path: Path):  # noqa: F811
@@ -101,3 +118,61 @@ def test_cancel_kills_a_running_ffmpeg():
     assert client.post(f"/jobs/{job.id}/cancel").json() == {"cancelled": True}
     assert _events(job.id)[-1]["type"] == "cancelled"
     assert time.monotonic() - begin < 2
+
+
+# Who may call the engine (server.TokenGuard, CORS): the app that started it.
+
+
+@pytest.fixture()
+def token(monkeypatch: pytest.MonkeyPatch) -> str:
+    monkeypatch.setenv("BOBINESTYLE_TOKEN", "s3cret")
+    return "s3cret"
+
+
+def test_a_request_without_the_token_is_refused(token: str) -> None:
+    assert client.get("/exists", params={"path": "x"}).status_code == 401
+    assert client.get("/exists", params={"path": "x"}, headers={"X-Bobine-Token": "wrong"}).status_code == 401
+    assert client.post("/paths/expand", json={"paths": ["x"]}).status_code == 401
+
+
+def test_a_request_with_the_token_goes_through(token: str) -> None:
+    assert client.get("/exists", params={"path": "x"}, headers={"X-Bobine-Token": token}).status_code == 200
+
+
+def test_health_answers_without_the_token(token: str) -> None:
+    assert client.get("/health").status_code == 200
+
+
+def test_a_websocket_without_the_token_is_refused(token: str) -> None:
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/jobs/does-not-exist/ws") as ws:
+            ws.receive_json()
+    with client.websocket_connect(f"/jobs/does-not-exist/ws?token={token}") as ws:
+        assert ws.receive_json()["type"] == "error"
+
+
+def test_no_token_asked_when_none_was_given(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BOBINESTYLE_TOKEN", raising=False)
+    assert client.get("/exists", params={"path": "x"}).status_code == 200
+
+
+@pytest.mark.parametrize("origin", ["tauri://localhost", "http://tauri.localhost", "http://localhost:1420"])
+def test_the_app_may_read_the_answers(origin: str) -> None:
+    resp = client.get("/health", headers={"Origin": origin})
+    assert resp.headers.get("access-control-allow-origin") == origin
+
+
+def test_a_website_may_not(token: str) -> None:
+    resp = client.get("/health", headers={"Origin": "https://example.com"})
+    assert "access-control-allow-origin" not in resp.headers
+    preflight = client.options(
+        "/exists",
+        headers={
+            "Origin": "https://example.com",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "x-bobine-token",
+        },
+    )
+    assert "access-control-allow-origin" not in preflight.headers

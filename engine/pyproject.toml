@@ -1,7 +1,7 @@
 [project]
 name = "bobinestyle"
-version = "1.1.1"
-description = "Applique le style maison aux sous-titres français d'un MKV et le remuxe (suite Bobine)"
+version = "2.0.0"
+description = "Applique un style aux sous-titres d'un MKV, dans les langues choisies, et le remuxe (suite Bobine)"
 readme = "README.md"
 authors = [
     { name = "Marc Valat", email = "marc.valat@hotmail.fr" }
@@ -29,7 +29,26 @@ dev = [
     "pyinstaller>=6.22.3",
     "pyinstaller-hooks-contrib>=2026.7",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+# The rules checked, named: a newer ruff enabling more by default doesn't
+# change what passes. Ruff's classic defaults (syntax, undefined names,
+# unused imports and variables) and sorted imports.
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+# `uv run pytest --cov`: which lines of the engine its tests run.
+[tool.coverage.run]
+source = ["bobinestyle"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

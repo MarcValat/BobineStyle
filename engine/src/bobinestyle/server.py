@@ -10,26 +10,84 @@ cancellation.
 from __future__ import annotations
 
 import asyncio
+import os
+import secrets
 import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
+from starlette.datastructures import QueryParams
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from bobinestyle import __version__
 from bobinestyle.batch import OUTPUT_DIR, find_videos
 from bobinestyle.ffmpeg_backend import FFmpegError
-from bobinestyle.fonts import system_fonts
+from bobinestyle.fonts import font_families, system_fonts
+from bobinestyle.i18n import LANGUAGES, set_language, tr
 from bobinestyle.jobs import get_job, start_job
-from bobinestyle.mux import FRENCH_CODES, MuxError, MuxPlan, default_output, mux, plan
+from bobinestyle.languages import normalize
+from bobinestyle.mux import DEFAULT_LANGUAGES, MuxError, MuxPlan, default_output, mux, plan
+from bobinestyle.styles import HOUSE, SubtitleStyle, read_styles, write_styles
 
 app = FastAPI(title="Bobine Style", version=__version__)
 
-# Only ever bound to 127.0.0.1 (see `bobinestyle serve`): open CORS just
-# lets the app's webview (tauri://..., localhost:1420 in dev) call it.
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# Who may call the engine. It only listens on 127.0.0.1 (see `bobinestyle
+# serve`), out of other machines' reach -- but not of this one's other
+# programs, nor of the websites open in its browser. So:
+# - the app that starts it passes it a secret (BOBINESTYLE_TOKEN, new at
+#   every launch), and every request must carry it back: the TOKEN_HEADER
+#   header, or a `token` query parameter for a WebSocket (a browser can't set
+#   its headers). /health alone answers without it (it tells nothing);
+# - only the app's own pages may read its answers (CORS): the Tauri window
+#   (tauri://localhost on Linux, http(s)://tauri.localhost on Windows) and
+#   the dev server, and any BOBINESTYLE_ORIGINS adds (comma-separated: the
+#   end-to-end tests' own dev server, on a port of its own).
+# Without BOBINESTYLE_TOKEN (`bobinestyle serve` run by hand), no token is asked.
+TOKEN_HEADER = "X-Bobine-Token"
+APP_ORIGINS = [
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+    "http://localhost:1420",
+    *(o.strip() for o in os.environ.get("BOBINESTYLE_ORIGINS", "").split(",") if o.strip()),
+]
+
+
+class TokenGuard:
+    """Refuses any request without the engine's token (see above): 401 for a
+    request, a closed handshake for a WebSocket."""
+
+    def __init__(self, inner: ASGIApp) -> None:
+        self.inner = inner
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        expected = os.environ.get("BOBINESTYLE_TOKEN")
+        if not expected or scope["type"] not in ("http", "websocket") or scope["path"] == "/health":
+            await self.inner(scope, receive, send)
+            return
+        # A CORS preflight carries no custom header: CORSMiddleware answers it.
+        if scope["type"] == "http" and scope["method"] == "OPTIONS":
+            await self.inner(scope, receive, send)
+            return
+        if scope["type"] == "http":
+            headers = dict(scope["headers"])
+            given = headers.get(TOKEN_HEADER.lower().encode(), b"").decode("latin-1")
+        else:
+            given = QueryParams(scope["query_string"]).get("token", "")
+        if secrets.compare_digest(given.encode(), expected.encode()):
+            await self.inner(scope, receive, send)
+        elif scope["type"] == "http":
+            await JSONResponse(status_code=401, content={"detail": "unauthorized"})(scope, receive, send)
+        else:
+            await send({"type": "websocket.close", "code": 1008})
+
+
+# The token checked inside CORS: a refusal still says where it came from.
+app.add_middleware(TokenGuard)
+app.add_middleware(CORSMiddleware, allow_origins=APP_ORIGINS, allow_methods=["*"], allow_headers=["*"])
 
 # Index the system fonts while the app starts, not on the first file.
 threading.Thread(target=system_fonts, daemon=True).start()
@@ -44,6 +102,20 @@ async def _engine_error(_request: Request, exc: Exception) -> JSONResponse:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": __version__}
+
+
+class LanguageRequest(BaseModel):
+    language: str
+
+
+@app.post("/language", status_code=204)
+def language(req: LanguageRequest) -> Response:
+    """The language of the messages the GUI shows (plan notes, job logs,
+    errors): it sends its own at startup and whenever the user changes it."""
+    if req.language not in LANGUAGES:
+        raise HTTPException(400, f"Unknown language: {req.language!r}")
+    set_language(req.language)
+    return Response(status_code=204)
 
 
 # --- files -------------------------------------------------------------------
@@ -106,10 +178,13 @@ def exists(path: str) -> dict[str, bool]:
 class TrackModel(BaseModel):
     index: int
     codec: str
+    # Its language: its tag normalized ("fra" -> "fre"), or guessed from
+    # its title when untagged.
     language: str | None
     title: str | None
-    french: bool
-    # French tracks only.
+    # One of the chosen languages: restyled and named.
+    chosen: bool
+    # Chosen tracks only.
     kind: str | None
     new_title: str | None
     default: bool
@@ -122,7 +197,8 @@ class TrackModel(BaseModel):
 class AudioModel(BaseModel):
     language: str | None
     title: str | None
-    french: bool
+    # In the default subtitles' language: their forced track is the default.
+    same: bool
 
 
 class PlanModel(BaseModel):
@@ -134,13 +210,14 @@ class PlanModel(BaseModel):
     fonts_present: list[str]
     fonts_missing: list[str]
     warnings: list[str]
+    default_language: str | None
 
     @classmethod
     def of(cls, p: MuxPlan) -> PlanModel:
         tracks = []
         for t in p.tracks:
             s = t.stream
-            if not t.french or t.text is None:
+            if not t.chosen or t.text is None:
                 action = "copy"
             else:
                 action = "convert" if s.codec in ("subrip", "srt") else "restyle"
@@ -148,13 +225,13 @@ class PlanModel(BaseModel):
                 TrackModel(
                     index=s.index,
                     codec=s.codec,
-                    language=s.language,
+                    language=t.language,
                     title=s.title,
-                    french=t.french,
+                    chosen=t.chosen,
                     kind=t.kind,
                     new_title=t.title,
-                    default=t.default if t.french else s.default and not any(x.default for x in p.tracks if x.french),
-                    forced=t.forced if t.french else s.forced,
+                    default=t.default if t.chosen else s.default and not any(x.default for x in p.chosen),
+                    forced=t.forced if t.chosen else s.forced,
                     action=action,
                     dialogue_lines=t.dialogue_lines,
                     notes=t.notes,
@@ -162,7 +239,8 @@ class PlanModel(BaseModel):
             )
         audio = None
         if p.audio is not None:
-            audio = AudioModel(language=p.audio.language, title=p.audio.title, french=p.audio.language in FRENCH_CODES)
+            language = normalize(p.audio.language)
+            audio = AudioModel(language=language, title=p.audio.title, same=language == p.default_language)
         return cls(
             path=p.source,
             video_size=p.video_size,
@@ -172,10 +250,27 @@ class PlanModel(BaseModel):
             fonts_present=p.fonts_present,
             fonts_missing=p.fonts_missing,
             warnings=p.warnings,
+            default_language=p.default_language,
         )
 
 
-class PlanRequest(BaseModel):
+class LanguagesModel(BaseModel):
+    """The subtitles' languages to restyle (ISO 639-2 codes, "fre"), the
+    one whose track becomes the default one (the first when absent), and
+    the style they get (the house style when absent: see styles.py)."""
+
+    languages: list[str] = list(DEFAULT_LANGUAGES)
+    default_language: str | None = None
+    style: dict | None = None
+
+    def subtitle_style(self) -> SubtitleStyle:
+        try:
+            return SubtitleStyle.of(self.style) if self.style is not None else HOUSE
+        except (ValueError, TypeError) as exc:
+            raise HTTPException(400, tr("Style invalide : {error}", error=exc)) from exc
+
+
+class PlanRequest(LanguagesModel):
     path: str
 
 
@@ -183,8 +278,67 @@ class PlanRequest(BaseModel):
 def plan_file(req: PlanRequest) -> PlanModel:
     """What processing ``path`` would do, without writing anything."""
     if not Path(req.path).is_file():
-        raise HTTPException(400, f"Fichier introuvable : {req.path}")
-    return PlanModel.of(plan(req.path))
+        raise HTTPException(400, tr("Fichier introuvable : {path}", path=req.path))
+    return PlanModel.of(plan(req.path, tuple(req.languages), req.default_language, req.subtitle_style()))
+
+
+# --- styles ------------------------------------------------------------------
+
+
+class StylesModel(BaseModel):
+    styles: list[dict]
+
+
+def _styles(data: list[dict]) -> list[SubtitleStyle]:
+    try:
+        return [SubtitleStyle.of(item) for item in data]
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(400, tr("Style invalide : {error}", error=exc)) from exc
+
+
+@app.get("/styles", response_model=StylesModel)
+def get_styles() -> StylesModel:
+    """The user's own styles (the house style is the app's, built in)."""
+    try:
+        return StylesModel(styles=[s.to_json() for s in read_styles()])
+    except ValueError as exc:
+        raise HTTPException(400, tr("Styles illisibles : {error}", error=exc)) from exc
+
+
+@app.put("/styles", status_code=204)
+def put_styles(req: StylesModel) -> Response:
+    """Keeps the user's styles, all of them (written whole, or not at all)."""
+    write_styles(_styles(req.styles))
+    return Response(status_code=204)
+
+
+class StylesFileRequest(BaseModel):
+    path: str
+
+
+@app.post("/styles/import", response_model=StylesModel)
+def import_styles(req: StylesFileRequest) -> StylesModel:
+    """The styles of a file exported before (not kept: the app adds them)."""
+    try:
+        return StylesModel(styles=[s.to_json() for s in read_styles(Path(req.path))])
+    except ValueError as exc:
+        raise HTTPException(400, tr("Styles illisibles : {error}", error=exc)) from exc
+
+
+class StylesExportRequest(StylesModel):
+    path: str
+
+
+@app.post("/styles/export", status_code=204)
+def export_styles(req: StylesExportRequest) -> Response:
+    write_styles(_styles(req.styles), Path(req.path))
+    return Response(status_code=204)
+
+
+@app.get("/fonts")
+def fonts() -> dict[str, list[str]]:
+    """The font families installed: a style's font is picked among them."""
+    return {"fonts": font_families()}
 
 
 # --- jobs --------------------------------------------------------------------
@@ -194,21 +348,23 @@ class JobStarted(BaseModel):
     job_id: str
 
 
-class MuxRequest(BaseModel):
+class MuxRequest(LanguagesModel):
     source: str
     output: str
 
 
 @app.post("/jobs/mux", response_model=JobStarted)
 def start_mux(req: MuxRequest) -> JobStarted:
+    style = req.subtitle_style()
+
     def run(log, progress):
-        log("Analyse des pistes…")
-        p = plan(req.source)
-        if not any(t.french for t in p.tracks):
-            raise MuxError("aucune piste de sous-titres française")
-        log("Remux…")
+        log(tr("Analyse des pistes…"))
+        p = plan(req.source, tuple(req.languages), req.default_language, style)
+        if not p.chosen:
+            raise MuxError(tr("aucune piste de sous-titres dans les langues choisies"))
+        log(tr("Remux…"))
         written = mux(p, req.output, progress)
-        log(f"Écrit et vérifié : {written}")
+        log(tr("Écrit et vérifié : {path}", path=written))
         return {"path": str(written), "plan": PlanModel.of(p).model_dump()}
 
     return JobStarted(job_id=start_job(run).id)
@@ -219,7 +375,7 @@ async def job_ws(websocket: WebSocket, job_id: str) -> None:
     await websocket.accept()
     job = get_job(job_id)
     if job is None:
-        await websocket.send_json({"type": "error", "message": f"Tâche inconnue : {job_id}"})
+        await websocket.send_json({"type": "error", "message": tr("Tâche inconnue : {job_id}", job_id=job_id)})
         await websocket.close()
         return
     since = 0
@@ -250,6 +406,6 @@ async def job_ws(websocket: WebSocket, job_id: str) -> None:
 def cancel_job(job_id: str) -> dict[str, bool]:
     job = get_job(job_id)
     if job is None:
-        raise HTTPException(404, f"Tâche inconnue : {job_id}")
+        raise HTTPException(404, tr("Tâche inconnue : {job_id}", job_id=job_id))
     job.cancel()
     return {"cancelled": True}

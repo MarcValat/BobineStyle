@@ -16,11 +16,11 @@ import struct
 from pathlib import Path
 
 import pytest
+from test_mux import mkv  # noqa: F401 - fixture
 
 import bobinestyle.mux as mux_module
 from bobinestyle.matroska import CLUSTER, SEGMENT, TIMESTAMP, MatroskaError, cluster_timestamps, out_of_order
 from bobinestyle.mux import MuxError, mux, plan, verify
-from test_mux import mkv  # noqa: F401 - fixture
 
 
 def test_remux_clusters_in_time_order(mkv: Path, tmp_path: Path):  # noqa: F811

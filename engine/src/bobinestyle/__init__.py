@@ -1,3 +1,3 @@
-"""Bobine Style: house style for French subtitles, part of the Bobine suite."""
+"""Bobine Style: one clean style for the subtitles of MKV files, part of the Bobine suite."""
 
-__version__ = "1.1.1"
+__version__ = "2.0.0"

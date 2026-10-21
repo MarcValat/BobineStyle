@@ -2,16 +2,16 @@
 <component type="desktop-application">
   <id>com.bobinestyle.app</id>
   <name>Bobine Style</name>
-  <summary>Give the French subtitles of MKV files one clean house style</summary>
-  <summary xml:lang="fr">Applique un style maison propre aux sous-titres français des MKV</summary>
+  <summary>Give the subtitles of MKV files one clean, readable style</summary>
+  <summary xml:lang="fr">Applique un style propre et lisible aux sous-titres des MKV</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <developer id="io.github.marcvalat">
     <name>Marc Valat</name>
   </developer>
   <description>
-    <p>Bobine Style restyles the French subtitles of MKV files in one readable house style, scaled to each video: it finds which style is the dialogue, the italics or the signs, names the full and forced tracks, attaches the fonts, and remuxes without re-encoding.</p>
-    <p xml:lang="fr">Bobine Style applique un style maison lisible aux sous-titres français des MKV, adapté à chaque vidéo : il reconnaît les dialogues, les italiques et les panneaux, nomme les pistes complètes et forcées, joint les polices et remuxe sans réencodage.</p>
+    <p>Bobine Style restyles the subtitles of MKV files, in the languages you choose, in one readable style (the house style or your own), scaled to each video: it finds which style is the dialogue, the italics or the signs, names the full and forced tracks in their own language, attaches the fonts, and remuxes without re-encoding.</p>
+    <p xml:lang="fr">Bobine Style applique un style lisible (le style maison ou le tien) aux sous-titres des MKV, dans les langues de ton choix, adapté à chaque vidéo : il reconnaît les dialogues, les italiques et les panneaux, nomme les pistes complètes et forcées dans leur langue, joint les polices et remuxe sans réencodage.</p>
   </description>
   <launchable type="desktop-id">bobinestyle.desktop</launchable>
   <icon type="stock">bobine-style</icon>

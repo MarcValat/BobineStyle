@@ -7,14 +7,14 @@
 <h1 align="center">Bobine Style</h1>
 
 <p align="center">
-  <b>One clean, readable style for the French subtitles of your MKV files</b>, at the right size on every video.
+  <b>One clean, readable style for the subtitles of your MKV files</b>, in the languages you choose, at the right size on every video.
 </p>
 
 <p align="center">
   <a href="https://github.com/MarcValat/BobineStyle/releases/latest"><img src="https://img.shields.io/github/v/release/MarcValat/BobineStyle?label=version" alt="Latest version"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-0078D6?logo=windows" alt="Windows 10 | 11 (x64)">
   <img src="https://img.shields.io/badge/Linux-Debian%20%7C%20Ubuntu%20(.deb)-E95420?logo=linux&logoColor=white" alt="Linux: Debian | Ubuntu (.deb)">
-  <img src="https://img.shields.io/badge/UI-Fran%C3%A7ais-555" alt="UI: French">
+  <img src="https://img.shields.io/badge/UI-English%20%7C%20Fran%C3%A7ais-555" alt="English | Français">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL%20v3-blue" alt="GPL v3 license"></a>
 </p>
 
@@ -23,31 +23,33 @@
 </p>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/main-dark.png">
-  <img src="docs/screenshots/main-light.png" alt="Bobine Style: a season's episodes processed, and what was done to the first one's subtitle tracks">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/main-en-dark.png">
+  <img src="docs/screenshots/main-en-light.png" alt="Bobine Style: a season's episodes read, French and English chosen; on the right, what will be done to the first one's subtitle tracks">
 </picture>
 
 ## Why
 
-French subtitles come in every style: thin Arial from one source, a huge font from another, a dialogue track that's hard to read on a bright scene. Across a library, it's a patchwork. Restyling them by hand means opening each file in a subtitle editor, finding which style is the dialogue, which one the italics, leaving the signs alone, then remuxing.
+Subtitles come in every style: thin Arial from one source, a huge font from another, a dialogue track that's hard to read on a bright scene. Across a library, it's a patchwork. Restyling them by hand means opening each file in a subtitle editor, finding which style is the dialogue, which one the italics, leaving the signs alone, then remuxing.
 
 Bobine Style does all of that in one pass, for a file or a whole series, and labels the tracks so that Plex (or any player) picks the right one on its own.
 
-It's part of **Bobine**, a small suite of tools for a video library, next to [Bobine Audio](https://github.com/MarcValat/BobineAudio) and [Bobine Subs](https://github.com/MarcValat/BobineSubs). The interface is in French.
+It's part of **Bobine**, a small suite of tools for a video library, next to [Bobine Audio](https://github.com/MarcValat/BobineAudio) and [Bobine Subs](https://github.com/MarcValat/BobineSubs).
 
 <img src="docs/screenshots/before-after.png" alt="Before and after: thin Arial subtitles become bold Trebuchet MS with an outline and a shadow; the sign at the top is left as it was; a two-speaker line is centred">
 
 ## Features
 
-- 🎨 **One house style**: Trebuchet MS bold, white with a black outline and shadow, with its variants: italics, top of the screen, two-speaker dash lines (centred, dashes aligned), simultaneous speech in yellow.
+- 🎨 **One house style**: Trebuchet MS bold, white with a black outline and shadow, with its variants: italics, top of the screen, two-speaker dash lines (centred, dashes aligned), overlapping speech in yellow.
+- ✏️ **Or your own styles**: font, size, colours, outline, shadow, margins, and each variant on or off, with a sample at the screen's scale. One style for the list, another for a file; import and export them.
+- 🌍 **Any subtitle language**: French by default, or English, German, Japanese… several at once. The others are copied as they are.
 - 📐 **The right size on every video**: the style is defined for a 1080p screen and scaled to each video: same size in 720p as in 4K, and a scope (2.39:1) or 4:3 film keeps the same on-screen size as a 16:9 one.
 - 🔍 **Roles found from usage, not names**: which style is the dialogue, the italics, the top lines… is worked out from how each style is used, whatever it's called. Signs and typesetting are left exactly as they were.
-- 🏷️ **Full and forced tracks named and flagged**: *Français* and *Français (forcé)*. The default subtitle follows the default audio: forced with French audio, full otherwise.
-- 🔤 **Fonts attached**: Trebuchet MS and the fonts the signs use are attached to the MKV, so the subtitles look the same on any player.
-- 📝 **SRT too**: French SRT files are converted to ASS in the same style (italics, `{\an8}`, dash lines…).
+- 🏷️ **Full and forced tracks named and flagged**, in their own language: *Français* and *Français (forcé)*, *English* and *English (forced)*… The default subtitle follows the default audio: forced when the audio is in its language, full otherwise.
+- 🔤 **Fonts attached**: the style's font and the fonts the signs use are attached to the MKV, so the subtitles look the same on any player.
+- 📝 **SRT too**: SRT tracks are converted to ASS in the same style (italics, `{\an8}`, dash lines…).
 - 🗂️ **A whole series in one pass**: drop a folder, its seasons are included; files already done are skipped.
-- 🛡️ **Nothing lost**: video, audio, other languages' subtitles and chapters are copied untouched, nothing is re-encoded, the original file is never changed, and each output is checked before it's kept.
-- 🖱️ **Drag and drop** files or whole folders, light or dark theme (or the system's), automatic updates.
+- 🛡️ **Nothing lost**: video, audio, the other languages' subtitles and chapters are copied untouched, nothing is re-encoded, the original file is never changed, and each output is checked before it's kept.
+- 🖱️ **Drag and drop** files or whole folders, in French or English, light or dark theme (or the system's), automatic updates.
 
 ## Install
 
@@ -67,14 +69,15 @@ The engine and ffmpeg come with the app. When a new version comes out, the app o
 ## How it works
 
 1. **Add MKV files**, or a whole folder (a season, a series), with the buttons or by dropping them on the window.
-2. **Check** what will be done: click a file to see each subtitle track's fate, the default track and the fonts to attach.
-3. **Apply the style**: the new files go into an `Output` folder next to the originals (or a folder of your choice), under the same names.
+2. **Choose** the subtitle languages, the default one and the style, at the top.
+3. **Check** what will be done: click a file to see each subtitle track's fate, the default track and the fonts to attach.
+4. **Apply the style**: the new files go into an `Output` folder next to the originals (or a folder of your choice), under the same names.
 
-📖 The [user guide](docs/guide.md) explains everything in detail: the house style, how roles are found, the default track, FAQ.
+📖 The [user guide](docs/guide.md) explains everything in detail: languages and the default track, styles, how roles are found, FAQ.
 
 ## Good to know
 
-- Only **French** subtitle tracks are restyled (`fre`, or an undetermined track when the file has no French one). Other languages are kept as they are.
+- Only the **chosen languages'** subtitle tracks are restyled (a track without a language tag is taken by its title, or as the default language when the file has none in it). Other languages are kept as they are.
 - Tracks made only of signs (a "Signs" track) are flagged forced but not restyled: their typesetting is kept as designed.
 - Some TV apps (Plex on some smart TVs, for instance) turn ASS subtitles into plain text and ignore any style: nothing a file can change. The style shows on players that render ASS (Plex on a computer, Infuse, VLC, mpv, Kodi), and when the Plex server burns the subtitles into the picture.
 

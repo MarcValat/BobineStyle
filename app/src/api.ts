@@ -1,13 +1,18 @@
 // Client for the engine sidecar (engine/src/bobinestyle/server.py).
-import { engineReady, getEngineUrl } from "./engine";
+import { engineHeaders, engineReady, getEngineToken, getEngineUrl } from "./engine";
+import { t } from "./i18n";
+import type { SubtitleStyle } from "./styles";
 
 export interface PlannedTrack {
   index: number;
   codec: string;
+  /** Its language (ISO 639-2, "fra" made "fre"; guessed from its title
+   * when untagged). */
   language: string | null;
   title: string | null;
-  french: boolean;
-  /** French tracks: "full" or "forced". */
+  /** In one of the chosen languages: restyled and named. */
+  chosen: boolean;
+  /** Chosen tracks: "full" or "forced". */
   kind: "full" | "forced" | null;
   new_title: string | null;
   default: boolean;
@@ -21,12 +26,27 @@ export interface PlannedTrack {
 export interface Plan {
   path: string;
   video_size: [number, number] | null;
-  audio: { language: string | null; title: string | null; french: boolean } | null;
+  /** `same`: in the default subtitles' language (their forced track is the default). */
+  audio: { language: string | null; title: string | null; same: boolean } | null;
   tracks: PlannedTrack[];
   fonts: string[];
   fonts_present: string[];
   fonts_missing: string[];
   warnings: string[];
+  default_language: string | null;
+}
+
+/** The subtitles' languages to restyle, and the one whose track becomes
+ * the default (null: the first). */
+interface Languages {
+  languages: string[];
+  default_language: string | null;
+}
+
+/** What a file is processed with: the languages, and the style (null:
+ * the house style). */
+export interface Processing extends Languages {
+  style: SubtitleStyle | null;
 }
 
 export interface Output {
@@ -41,9 +61,11 @@ export interface MuxResult {
 
 async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
   await engineReady();
-  const resp = await fetch(`${await getEngineUrl()}${path}`, init);
+  const headers = new Headers(init?.headers);
+  for (const [name, value] of Object.entries(await engineHeaders())) headers.set(name, value);
+  const resp = await fetch(`${await getEngineUrl()}${path}`, { ...init, headers });
   if (!resp.ok) {
-    let detail: unknown = `Erreur ${resp.status}`;
+    let detail: unknown = t().common.httpError(resp.status);
     try {
       detail = (await resp.json()).detail ?? detail;
     } catch {
@@ -74,57 +96,82 @@ export async function planOutputs(sources: string[], folder: string | null): Pro
   return (await (await postJson("/outputs", { sources, folder })).json()).outputs;
 }
 
-export async function planFile(path: string): Promise<Plan> {
-  return (await postJson("/plan", { path })).json();
+/** The language of the engine's messages (plan notes, job logs, errors). */
+export async function setEngineLanguage(language: string): Promise<void> {
+  await engineFetch(`/language`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ language }),
+  });
 }
 
-export async function startMux(source: string, output: string): Promise<string> {
-  return (await (await postJson("/jobs/mux", { source, output })).json()).job_id;
+export async function planFile(path: string, processing: Processing): Promise<Plan> {
+  return (await postJson("/plan", { path, ...processing })).json();
+}
+
+export async function startMux(source: string, output: string, processing: Processing): Promise<string> {
+  return (await (await postJson("/jobs/mux", { source, output, ...processing })).json()).job_id;
+}
+
+/** The user's own styles (styles.json, see the engine's styles.py). */
+export async function getStyles(): Promise<SubtitleStyle[]> {
+  return (await (await engineFetch("/styles")).json()).styles;
+}
+
+export async function putStyles(styles: SubtitleStyle[]): Promise<void> {
+  await engineFetch("/styles", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ styles }) });
+}
+
+/** The styles of a file exported before. */
+export async function importStyles(path: string): Promise<SubtitleStyle[]> {
+  return (await (await postJson("/styles/import", { path })).json()).styles;
+}
+
+export async function exportStyles(path: string, styles: SubtitleStyle[]): Promise<void> {
+  await postJson("/styles/export", { path, styles });
+}
+
+/** The font families installed on this computer. */
+export async function getFonts(): Promise<string[]> {
+  return (await (await engineFetch("/fonts")).json()).fonts;
 }
 
 export async function cancelJob(jobId: string): Promise<void> {
   await postJson(`/jobs/${jobId}/cancel`, {});
 }
 
-type JobEvent<T> =
+export type JobEvent<TResult> =
   | { type: "log"; message: string }
   | { type: "progress"; value: number }
-  | { type: "done"; result: T }
+  | { type: "done"; result: TResult }
   | { type: "error"; message: string }
   | { type: "cancelled" };
 
-export class JobCancelled extends Error {
-  constructor() {
-    super("Annulé");
-  }
-}
+/** Follows a job over its WebSocket: every event goes to `onEvent`; a
+ * connection lost before the job ended (the engine crashed) as an error.
+ * From Bobine Audio. */
+export async function connectJobWS<TResult>(jobId: string, onEvent: (event: JobEvent<TResult>) => void): Promise<() => void> {
+  // A WebSocket takes no header: the token goes in its address.
+  const token = encodeURIComponent(await getEngineToken());
+  const ws = new WebSocket(`${(await getEngineUrl()).replace("http", "ws")}/jobs/${jobId}/ws?token=${token}`);
+  let settled = false;
 
-/** A job as a promise: `onProgress` gets how far it got (0 to 1), `onStart`
- * its id (to cancel it); settles with its result, its error, or
- * JobCancelled. An unexpected close (engine crash) is an error. */
-export function runJob<T>(
-  jobId: Promise<string>,
-  onProgress: (value: number) => void,
-  onStart?: (id: string) => void,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    Promise.all([jobId, getEngineUrl()])
-      .then(([id, url]) => {
-        onStart?.(id);
-        const ws = new WebSocket(`${url.replace("http", "ws")}/jobs/${id}/ws`);
-        let finished = false;
-        ws.onmessage = (msg) => {
-          const event = JSON.parse(msg.data) as JobEvent<T>;
-          if (event.type === "progress") onProgress(event.value);
-          else if (event.type === "done") resolve(event.result);
-          else if (event.type === "error") reject(new Error(event.message));
-          else if (event.type === "cancelled") reject(new JobCancelled());
-          if (event.type !== "log" && event.type !== "progress") finished = true;
-        };
-        ws.onclose = () => {
-          if (!finished) reject(new Error("Le moteur s'est arrêté pendant la tâche."));
-        };
-      })
-      .catch(reject);
-  });
+  ws.onmessage = (ev) => {
+    const event: JobEvent<TResult> = JSON.parse(ev.data);
+    if (event.type === "done" || event.type === "error" || event.type === "cancelled") settled = true;
+    onEvent(event);
+  };
+  ws.onerror = () => {
+    if (!settled) {
+      settled = true;
+      onEvent({ type: "error", message: t().common.websocketLost });
+    }
+  };
+  ws.onclose = () => {
+    if (!settled) {
+      settled = true;
+      onEvent({ type: "error", message: t().common.connectionLost });
+    }
+  };
+  return () => ws.close();
 }

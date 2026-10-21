@@ -36,6 +36,8 @@ class FontFace:
     path: Path
     families: frozenset[str]  # lowercase
     full_names: frozenset[str]  # lowercase
+    # Its family as the font names it ("Trebuchet MS"), for a font picker.
+    display: str = ""
 
 
 def _decode(raw: bytes, platform: int) -> str | None:
@@ -46,7 +48,8 @@ def _decode(raw: bytes, platform: int) -> str | None:
 
 
 def _names_at(data: bytes, offset: int) -> tuple[set[str], set[str]]:
-    """Family (IDs 1 and 16) and full (ID 4) names of the font at ``offset``."""
+    """Family (IDs 1 and 16) and full (ID 4) names of the font at
+    ``offset``, as the font writes them."""
     families: set[str] = set()
     full: set[str] = set()
     num_tables = struct.unpack_from(">H", data, offset + 4)[0]
@@ -64,7 +67,7 @@ def _names_at(data: bytes, offset: int) -> tuple[set[str], set[str]]:
             start = table_offset + strings + string_offset
             name = _decode(data[start : start + length], platform)
             if name and name.strip():
-                (full if name_id == 4 else families).add(name.strip().lower())
+                (full if name_id == 4 else families).add(name.strip())
         break
     return families, full
 
@@ -79,7 +82,7 @@ def read_font_names(path: Path) -> list[tuple[set[str], set[str]]]:
         else:
             offsets = (0,)
         return [_names_at(data, o) for o in offsets]
-    except (OSError, struct.error):
+    except OSError, struct.error:
         return []
 
 
@@ -87,9 +90,17 @@ def font_faces(path: Path) -> FontFace | None:
     names = read_font_names(path)
     if not names:
         return None
-    families = frozenset(n for fam, _ in names for n in fam)
-    full = frozenset(n for _, f in names for n in f)
-    return FontFace(path, families, full) if families else None
+    families = frozenset(n.lower() for fam, _ in names for n in fam)
+    full = frozenset(n.lower() for _, f in names for n in f)
+    # The shortest family name: the typographic one ("Segoe UI"), not a
+    # weight's own ("Segoe UI Semibold").
+    display = min((n for fam, _ in names for n in fam), key=lambda n: (len(n), n), default="")
+    return FontFace(path, families, full, display) if families else None
+
+
+def font_families() -> list[str]:
+    """The families installed on this computer, by name: a style's font."""
+    return sorted({f.display for f in system_fonts() if f.display}, key=str.lower)
 
 
 def system_font_dirs() -> list[Path]:

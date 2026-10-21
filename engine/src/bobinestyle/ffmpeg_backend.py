@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -10,6 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from bobinestyle.cancellation import Cancelled, current_cancel_event
+from bobinestyle.i18n import tr
 from bobinestyle.models import StreamInfo, SubtitleStreamInfo
 
 # Never flash a console window per ffmpeg call once packaged without a console.
@@ -31,28 +33,52 @@ def resolve_ffmpeg() -> str:
 
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception as exc:  # pragma: no cover - defensive
-        raise FFmpegError("ffmpeg not found: neither on PATH nor through the imageio-ffmpeg package.") from exc
+        raise FFmpegError(tr("ffmpeg introuvable : ni sur le PATH, ni via le paquet imageio-ffmpeg.")) from exc
 
+
+def _child_env(environ: dict[str, str], frozen: bool) -> dict[str, str] | None:
+    """The environment ffmpeg runs in: the system's own, not the one a
+    PyInstaller build gives itself on Linux, whose LD_LIBRARY_PATH points at
+    the libraries bundled with the engine. The system's ffmpeg (preferred
+    over the bundled one, see resolve_ffmpeg) then loads the bundle's older
+    libstdc++ and fails at once ("GLIBCXX_3.4.32 not found", ffmpeg 8 on
+    Ubuntu 26.04): no stream in its report, every file unreadable. PyInstaller
+    keeps the original value in LD_LIBRARY_PATH_ORIG. ``None`` (inherit as
+    is) when not frozen, and on Windows. From Bobine Audio."""
+    if not frozen or sys.platform == "win32":
+        return None
+    env = dict(environ)
+    original = env.pop("LD_LIBRARY_PATH_ORIG", None)
+    if original is None:
+        env.pop("LD_LIBRARY_PATH", None)
+    else:
+        env["LD_LIBRARY_PATH"] = original
+    return env
+
+
+_CHILD_ENV = _child_env(dict(os.environ), getattr(sys, "frozen", False))
 
 # How often a running ffmpeg checks for a cancellation.
 _CANCEL_POLL_S = 0.2
 _TOTAL_SIZE_RE = re.compile(rb"^total_size=(\d+)")
 
 
-def _run(cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None] | None = None) -> subprocess.CompletedProcess[bytes]:
-    """Run ffmpeg, killing it (raising ``Cancelled``) as soon as the job
-    running it is cancelled. With ``on_size``, ffmpeg reports how far it
+def _run(
+    cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None] | None = None
+) -> subprocess.CompletedProcess[bytes]:
+    """Run ffmpeg in the system's environment (see _child_env), killing it
+    (raising ``Cancelled``) as soon as the job running it is cancelled. With ``on_size``, ffmpeg reports how far it
     got (bytes written) as it goes: its output time is often unknown
     ("N/A") when copying with -copyts and attachments."""
     event = current_cancel_event()
     if event is None and on_size is None:
-        return subprocess.run(cmd, cwd=cwd, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
+        return subprocess.run(cmd, cwd=cwd, env=_CHILD_ENV, capture_output=True, creationflags=_SUBPROCESS_FLAGS)
     if event is not None and event.is_set():
         raise Cancelled()
     if on_size is not None:
         cmd = [cmd[0], "-progress", "pipe:1", "-nostats", *cmd[1:]]
     with subprocess.Popen(
-        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_SUBPROCESS_FLAGS
+        cmd, cwd=cwd, env=_CHILD_ENV, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=_SUBPROCESS_FLAGS
     ) as proc:
         out: list[bytes] = []
         err: list[bytes] = []
@@ -86,19 +112,25 @@ def _run(cmd: list[str], cwd: Path | None = None, on_size: Callable[[int], None]
 def run_checked(cmd: list[str], on_size: Callable[[int], None] | None = None) -> bytes:
     proc = _run(cmd, on_size=on_size)
     if proc.returncode != 0:
-        raise FFmpegError(f"ffmpeg failed:\n{' '.join(cmd)}\n{proc.stderr.decode(errors='replace')}")
+        raise FFmpegError(
+            tr(
+                "Échec de ffmpeg :\n{command}\n{details}",
+                command=" ".join(cmd),
+                details=proc.stderr.decode(errors="replace"),
+            )
+        )
     return proc.stdout
 
 
 def ffmpeg_info(path: str) -> str:
     """``ffmpeg -i path``'s report."""
     if not Path(path).is_file():
-        raise FFmpegError(f"File not found: {path}")
+        raise FFmpegError(tr("Fichier introuvable : {path!r}", path=path))
     proc = _run([resolve_ffmpeg(), "-hide_banner", "-i", path])
     # UTF-8 explicitly: ffmpeg writes tags that way, cp1252 would mangle titles.
     info = proc.stderr.decode("utf-8", errors="replace")
     if "Invalid data found" in info:
-        raise FFmpegError(f"Cannot read {path!r}:\n{info}")
+        raise FFmpegError(tr("Impossible de lire {path!r} :\n{details}", path=path, details=info))
     return info
 
 
@@ -158,7 +190,17 @@ def dump_attachments(path: str, folder: Path) -> list[Path]:
     before = set(folder.iterdir())
     # ffmpeg dumps before complaining that there is no output: ignore that.
     _run(
-        [resolve_ffmpeg(), "-hide_banner", "-loglevel", "quiet", "-y", "-dump_attachment:t", "", "-i", str(Path(path).resolve())],
+        [
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "quiet",
+            "-y",
+            "-dump_attachment:t",
+            "",
+            "-i",
+            str(Path(path).resolve()),
+        ],
         cwd=folder,
     )
     return sorted(set(folder.iterdir()) - before)
@@ -173,15 +215,33 @@ def extract_subtitle_text(path: str, track: int, codec: str) -> str:
     timestamps (ffmpeg otherwise shifts them by the file's start time)."""
     fmt = TEXT_FORMATS.get(codec)
     if fmt is None:
-        raise FFmpegError(f"Unsupported subtitle format: {codec}")
+        raise FFmpegError(tr("Format de sous-titres non pris en charge : {codec}", codec=codec))
     proc = _run(
         [
-            resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-copyts", "-i", path,
-            "-map", f"0:s:{track}", "-c:s", "copy", "-f", fmt, "-",
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-copyts",
+            "-i",
+            path,
+            "-map",
+            f"0:s:{track}",
+            "-c:s",
+            "copy",
+            "-f",
+            fmt,
+            "-",
         ]
     )
     if proc.returncode != 0:
-        raise FFmpegError(f"Cannot extract subtitle track {track}:\n{proc.stderr.decode(errors='replace')}")
+        raise FFmpegError(
+            tr(
+                "Impossible d'extraire la piste de sous-titres {track} :\n{details}",
+                track=track,
+                details=proc.stderr.decode(errors="replace"),
+            )
+        )
     return proc.stdout.decode("utf-8-sig", errors="replace").replace("\r\n", "\n")
 
 

@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from test_mux import FULL
 
 from bobinestyle.batch import Status, find_videos, run_batch
 from bobinestyle.cli import main
 from bobinestyle.ffmpeg_backend import resolve_ffmpeg
-from test_mux import FULL
 
 ENGLISH = "1\n00:00:01,000 --> 00:00:02,000\nHello\n"
 
@@ -18,10 +18,28 @@ def _mkv(path: Path, subtitle: Path, language: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         [
-            resolve_ffmpeg(), "-hide_banner", "-loglevel", "error", "-y",
-            "-f", "lavfi", "-i", "color=c=black:s=64x36:r=5:d=45", "-i", str(subtitle),
-            "-map", "0", "-map", "1", "-c:v", "mpeg4", "-c:s", "copy",
-            "-metadata:s:s:0", f"language={language}", str(path),
+            resolve_ffmpeg(),
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=64x36:r=5:d=45",
+            "-i",
+            str(subtitle),
+            "-map",
+            "0",
+            "-map",
+            "1",
+            "-c:v",
+            "mpeg4",
+            "-c:s",
+            "copy",
+            "-metadata:s:s:0",
+            f"language={language}",
+            str(path),
         ],
         check=True,
     )
@@ -51,7 +69,7 @@ def test_batch_mirrors_the_tree_and_keeps_going(series: Path):
     assert _statuses(results) == {
         "S01/E01.mkv": Status.DONE,
         "S01/E02.mkv": Status.DONE,
-        "S02/E01.mkv": Status.NO_FRENCH,
+        "S02/E01.mkv": Status.NO_SUBTITLES,
         "S02/E02.mkv": Status.ERROR,
     }
     assert (series / "Output" / "S01" / "E01.mkv").is_file()
@@ -62,7 +80,10 @@ def test_batch_mirrors_the_tree_and_keeps_going(series: Path):
 def test_rerun_skips_done_files_and_ignores_the_output(series: Path):
     run_batch(series, recursive=True)
     assert [p.relative_to(series).as_posix() for p in find_videos(series, True, series / "Output")] == [
-        "S01/E01.mkv", "S01/E02.mkv", "S02/E01.mkv", "S02/E02.mkv",
+        "S01/E01.mkv",
+        "S01/E02.mkv",
+        "S02/E01.mkv",
+        "S02/E02.mkv",
     ]
     again = _statuses(run_batch(series, recursive=True))
     assert again["S01/E01.mkv"] is Status.EXISTS
@@ -94,4 +115,4 @@ def test_cli_batch(series: Path):
     result = CliRunner().invoke(main, ["batch", str(series), "-r", "-j", "1"])
     assert result.exit_code == 1  # the broken file
     assert "✓ S01" in result.output and "✗ S02" in result.output
-    assert "Bilan : 2 traité(s), 1 sans sous-titres français, 1 en erreur" in result.output
+    assert "Bilan : 2 traité(s), 1 sans sous-titres dans ces langues, 1 en erreur" in result.output

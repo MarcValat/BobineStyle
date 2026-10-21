@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from bobinestyle.ass import parse_ass
+from bobinestyle.batch import FileResult, Status, run_batch, summary
 from bobinestyle.ffmpeg_backend import (
     TEXT_FORMATS,
     FFmpegError,
@@ -15,8 +16,8 @@ from bobinestyle.ffmpeg_backend import (
     probe_streams,
     subtitle_streams,
 )
-from bobinestyle.batch import FileResult, Status, run_batch, summary
-from bobinestyle.mux import FRENCH_CODES, MuxError, MuxPlan, default_output, mux, plan
+from bobinestyle.languages import normalize
+from bobinestyle.mux import DEFAULT_LANGUAGES, MuxError, MuxPlan, default_output, mux, plan
 from bobinestyle.roles import ScriptReport, analyze
 from bobinestyle.scale import screen_scale
 from bobinestyle.style import apply_house_style
@@ -29,7 +30,7 @@ def _fail(message: str) -> None:
 
 @click.group()
 def main() -> None:
-    """Applique le style maison aux sous-titres français d'un MKV."""
+    """Applique un style aux sous-titres d'un MKV, dans les langues choisies."""
     # Windows consoles default to cp1252: accented titles would crash echo.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -129,19 +130,40 @@ def style(file: str, track: int, output: str | None) -> None:
     click.echo(f"Écrit : {out}")
 
 
+def _languages(value: str) -> tuple[str, ...]:
+    return tuple(code.strip() for code in value.split(",") if code.strip())
+
+
+LANGUAGES_OPTION = click.option(
+    "--langues",
+    "languages",
+    default=",".join(DEFAULT_LANGUAGES),
+    show_default=True,
+    help="Langues des sous-titres à restyler (codes ISO 639-2, séparés par des virgules : fre,eng).",
+)
+DEFAULT_OPTION = click.option(
+    "--defaut",
+    "default_language",
+    default=None,
+    help="Langue dont une piste devient celle par défaut (la première des langues par défaut).",
+)
+
+
 @main.command("mux")
 @click.argument("file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--output", "-o", type=click.Path(dir_okay=False), help="MKV écrit (Output/<même nom> par défaut).")
 @click.option("--plan", "plan_only", is_flag=True, help="Affiche ce qui serait fait, sans rien écrire.")
-def mux_command(file: str, output: str | None, plan_only: bool) -> None:
-    """Remuxe le MKV avec ses sous-titres français au style maison et les polices jointes."""
+@LANGUAGES_OPTION
+@DEFAULT_OPTION
+def mux_command(file: str, output: str | None, plan_only: bool, languages: str, default_language: str | None) -> None:
+    """Remuxe le MKV avec ses sous-titres au style maison et les polices jointes."""
     try:
-        p = plan(file)
+        p = plan(file, _languages(languages), default_language)
     except FFmpegError as exc:
         _fail(str(exc))
     _echo_plan(p)
-    if not any(t.french for t in p.tracks):
-        _fail("aucune piste de sous-titres française")
+    if not p.chosen:
+        _fail("aucune piste de sous-titres dans les langues choisies")
     if plan_only:
         return
     target = Path(output) if output else default_output(file)
@@ -157,13 +179,16 @@ def _echo_plan(p: MuxPlan, indent: str = "") -> None:
         click.echo(indent + "Pas d'audio : sous-titres complets par défaut")
     else:
         lang = p.audio.language or "langue inconnue"
-        choice = "forcés" if p.audio.language in FRENCH_CODES else "complets"
-        click.echo(f"{indent}Audio par défaut : {lang} {p.audio.title or ''}".rstrip() + f"  ->  sous-titres {choice} par défaut")
+        choice = "forcés" if normalize(p.audio.language) == p.default_language else "complets"
+        click.echo(
+            f"{indent}Audio par défaut : {lang} {p.audio.title or ''}".rstrip()
+            + f"  ->  sous-titres {choice} par défaut"
+        )
     for t in p.tracks:
         s = t.stream
-        if t.french:
+        if t.chosen:
             flags = " ".join(f for f, on in (("défaut", t.default), ("forcés", t.forced)) if on)
-            action = "restylé" if t.text is not None else "copié"
+            action = ("converti" if s.codec in ("subrip", "srt") else "restylé") if t.text is not None else "copié"
             lines = f"{t.dialogue_lines} répliques" if t.dialogue_lines is not None else "?"
             click.echo(f"{indent}@{s.index}  {s.title or '-'}  ->  {t.title}  {flags}  ({action}, {lines})")
         else:
@@ -180,13 +205,29 @@ def _echo_plan(p: MuxPlan, indent: str = "") -> None:
 
 @main.command()
 @click.argument("folder", type=click.Path(exists=True, file_okay=False))
-@click.option("--output", "-o", type=click.Path(file_okay=False), help="Dossier de sortie (<dossier>/Output par défaut).")
+@click.option(
+    "--output", "-o", type=click.Path(file_okay=False), help="Dossier de sortie (<dossier>/Output par défaut)."
+)
 @click.option("--recursive", "-r", is_flag=True, help="Inclut les sous-dossiers (saisons).")
-@click.option("--jobs", "-j", type=click.IntRange(1, 8), default=2, show_default=True, help="Fichiers traités en parallèle.")
+@click.option(
+    "--jobs", "-j", type=click.IntRange(1, 8), default=2, show_default=True, help="Fichiers traités en parallèle."
+)
 @click.option("--plan", "plan_only", is_flag=True, help="Affiche ce qui serait fait, sans rien écrire.")
 @click.option("--force", is_flag=True, help="Refait les fichiers déjà présents dans le dossier de sortie.")
 @click.option("--details", is_flag=True, help="Affiche le détail des pistes de chaque fichier.")
-def batch(folder: str, output: str | None, recursive: bool, jobs: int, plan_only: bool, force: bool, details: bool) -> None:
+@LANGUAGES_OPTION
+@DEFAULT_OPTION
+def batch(
+    folder: str,
+    output: str | None,
+    recursive: bool,
+    jobs: int,
+    plan_only: bool,
+    force: bool,
+    details: bool,
+    languages: str,
+    default_language: str | None,
+) -> None:
     """Traite tous les MKV d'un dossier."""
     root = Path(folder)
     lock = threading.Lock()
@@ -198,17 +239,25 @@ def batch(folder: str, output: str | None, recursive: bool, jobs: int, plan_only
                 click.echo(f"✗ {name} : {r.error.splitlines()[-1] if r.error else 'erreur'}")
             elif r.status is Status.EXISTS:
                 click.echo(f"= {name} : déjà dans la sortie")
-            elif r.status is Status.NO_FRENCH:
-                click.echo(f"- {name} : pas de sous-titres français")
+            elif r.status is Status.NO_SUBTITLES:
+                click.echo(f"- {name} : pas de sous-titres dans ces langues")
             else:
-                french = sum(t.french for t in r.plan.tracks)
+                chosen = len(r.plan.chosen)
                 mark = "✓" if r.status is Status.DONE else "?"
-                click.echo(f"{mark} {name} : {french} piste(s) FR, {len(r.plan.fonts)} police(s) jointe(s)")
+                click.echo(f"{mark} {name} : {chosen} piste(s) restylée(s), {len(r.plan.fonts)} police(s) jointe(s)")
             if details and r.plan and r.status in (Status.DONE, Status.PLANNED):
                 _echo_plan(r.plan, indent="    ")
 
     results = run_batch(
-        root, Path(output) if output else None, recursive, jobs, plan_only, force, on_result=report
+        root,
+        Path(output) if output else None,
+        recursive,
+        jobs,
+        plan_only,
+        force,
+        on_result=report,
+        languages=_languages(languages),
+        default_language=default_language,
     )
     if not results:
         _fail("aucun fichier MKV dans ce dossier")
@@ -216,7 +265,7 @@ def batch(folder: str, output: str | None, recursive: bool, jobs: int, plan_only
         Status.DONE: "traité(s)",
         Status.PLANNED: "à traiter",
         Status.EXISTS: "déjà fait(s)",
-        Status.NO_FRENCH: "sans sous-titres français",
+        Status.NO_SUBTITLES: "sans sous-titres dans ces langues",
         Status.ERROR: "en erreur",
     }
     click.echo("Bilan : " + ", ".join(f"{n} {labels[status]}" for status, n in summary(results)))
