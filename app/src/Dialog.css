@@ -15,7 +15,7 @@
   background: var(--backdrop);
 }
 
-/* The segment editor uses nearly the whole window. */
+/* The Styles dialog uses nearly the whole window. */
 .dialog-overlay-fill {
   padding: 1em;
 }

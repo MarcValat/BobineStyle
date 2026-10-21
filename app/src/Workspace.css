@@ -1,7 +1,6 @@
 /* The workspace: the file list on the left, the selected file's detail on
    the right, taking the height between the settings bar and the footer.
-   Only the list's rows scroll; the detail fits its panel (the waveforms
-   take what's left). */
+   The list's rows and the detail's body scroll. */
 .workspace {
   flex: 1 1 auto;
   min-height: 0;
@@ -96,8 +95,8 @@
   box-shadow: none;
 }
 
-/* Lit wherever the pointer is on the row: its own buttons (↑ ↓ ✕) and a
-   pair's file names sit above the row's button, not in it. */
+/* Lit wherever the pointer is on the row: its own buttons (↑ ↓ ✕) sit
+   above the row's button, not in it. */
 .list-row:not(.selected):hover .list-row-main {
   background: var(--surface-alt);
   border-color: var(--accent);
@@ -144,15 +143,6 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-}
-
-.list-row-manual {
-  color: var(--accent-2);
-}
-
-.list-row-issues {
-  display: block;
-  color: var(--drift-text);
 }
 
 /* Centered by the layout, not by a translate(-50%) (it could land on half a
@@ -273,10 +263,8 @@
   --row-state: var(--danger);
 }
 
-/* Under the rows, "+ Ajouter des vidéos" (or drop them): as the pairs'
-   "+ Références" / "+ À corriger". */
-.file-list-add,
-.pair-add button {
+/* Under the rows, "+ Ajouter des MKV" (or drop them). */
+.file-list-add {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -295,13 +283,11 @@
   margin: auto 0.3em 0;
 }
 
-.file-list-add span:first-child,
-.pair-add button span:first-child {
+.file-list-add span:first-child {
   font-weight: 600;
 }
 
-.file-list-add span + span,
-.pair-add button span + span {
+.file-list-add span + span {
   font-size: 11.5px;
   line-height: 15px;
   font-weight: 400;
@@ -371,72 +357,14 @@
   margin-right: 0;
 }
 
-/* Under the header: the tabs, then the tracks beside the chart, then the
-   waveforms and the playback taking what's left. */
+/* Under the header: the default subtitles, the style, the tracks, the
+   fonts and the output, scrolling when they don't fit. */
 .detail-body {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.7em;
-}
-
-.detail-top {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
-  gap: 1em;
-  align-items: start;
-}
-
-/* The Segments tab of a short window: the tracks and the chart, as tall
-   as the panel. */
-.detail-top-fill {
-  flex: 1 1 auto;
-  min-height: 0;
-  align-items: stretch;
-}
-
-.detail-tracks {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-}
-
-/* A column's title ("PISTES", "SEGMENTS"), the same height on both sides
-   so the frames under them line up. */
-.detail-heading {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  height: 24px;
-}
-
-.detail-heading-summary {
-  min-width: 0;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-heading h3 {
-  flex: 0 0 auto;
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.detail-tracks .detail-heading button {
-  margin-left: auto;
-  padding: 0.1em 0.6em;
 }
 
 /* About four tracks, then it scrolls (headers stay). */
@@ -456,177 +384,6 @@
 .detail-tracks-table td {
   white-space: nowrap;
   overflow-wrap: normal;
-}
-
-/* Under the tracks: each corrected track's name in the export. */
-.detail-names {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.detail-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.detail-name-row span {
-  flex: 0 0 auto;
-  min-width: 4em;
-}
-
-/* 24px, as the small buttons. */
-.detail-name-row input {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 1px 7px;
-  font-size: 12px;
-}
-
-.detail-subs {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.detail-subs-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-subs button {
-  flex: 0 0 auto;
-}
-
-.detail-chart {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  /* As the tracks' beside it, so both frames start on one line. */
-  gap: 6px;
-}
-
-/* Alone on its row (short window), the Segments / Écoute switch at its right. */
-.detail-tabs .view-switch {
-  margin-left: auto;
-}
-
-.detail-chart .segment-chart {
-  max-width: none;
-  margin: 0;
-}
-
-.detail-top-fill .detail-chart {
-  min-height: 0;
-}
-
-.detail-running {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6em;
-  opacity: 1;
-}
-
-/* One tab per corrected track, what it was analyzed against beside. */
-.detail-tabs {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4em 0.8em;
-}
-
-.detail-export {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3em 0.6em;
-  font-size: 13px;
-}
-
-/* A pair: a file row whose two lines are its two files, each led by
-   which one it is. */
-.pair-row .list-row-name,
-.pair-row .list-row-detail {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  min-width: 0;
-  font-size: 13px;
-  /* Both 17px: the row as tall as a multitrack file's (58px). */
-  line-height: 17px;
-  color: var(--text);
-  overflow-wrap: normal;
-}
-
-.pair-row .list-row-detail {
-  font-weight: 400;
-}
-
-/* One width for both ("RÉF.", "CORR."), so the names line up. */
-.pair-row-kind {
-  flex: 0 0 42px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.pair-row-kind-ref {
-  color: var(--accent-text);
-}
-
-.pair-row-kind-cand {
-  color: var(--drift-text);
-}
-
-.pair-row-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pair-row-missing {
-  color: var(--danger);
-}
-
-/* Each file's ↑ ↓ ✕ on its own line. */
-.pair-row-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pair-row-actions > span {
-  display: flex;
-  justify-content: flex-end;
-  gap: 2px;
-  min-height: 24px;
-}
-
-/* "+ Références" / "+ À corriger" under the list, each with its half of
-   the window to drop on. */
-.pair-add {
-  flex: 0 0 auto;
-  margin: auto 0.3em 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5em;
-}
-
-.pair-add button + button {
-  border-color: color-mix(in srgb, var(--drift) 45%, transparent);
-  background: color-mix(in srgb, var(--drift) 5%, transparent);
-  color: var(--drift-text);
 }
 
 /* No file yet: what the mode does, its drop zone(s), and the two modes'
@@ -663,8 +420,7 @@
 }
 
 /* The zone takes what's left, within reason. */
-.empty-workspace > .drop-zone-empty,
-.pairs-empty-zones {
+.empty-workspace > .drop-zone-empty {
   flex: 1 1 280px;
   min-height: 160px;
   max-height: 340px;
@@ -686,7 +442,7 @@
 }
 
 .empty-workspace .drop-zone-empty {
-  /* The zone's hue at each end (pairs' zones have their own, below). */
+  /* The zone's hue at each end. */
   --zone-hue-from: var(--accent-strong);
   --zone-hue-to: var(--accent-2);
   --zone-from: color-mix(in srgb, var(--zone-hue-from) 6%, transparent);
@@ -763,64 +519,15 @@
   stroke-linejoin: round;
 }
 
-.mode-card-pairs .mode-card-title svg {
-  stroke: var(--accent-2);
-}
-
-.mode-card-chosen {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-text);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
 .mode-card-hint {
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-muted);
 }
 
-.pairs-empty-zones {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1em;
-}
-
-/* Pairs: the references' side in the accent, the side to correct in the
-   drift's amber (as the rows' Réf. / Corr.). */
-.empty-workspace .pairs-empty-zones .drop-zone-empty {
-  min-height: 0;
-  --zone-hue-from: var(--accent-strong);
-  --zone-hue-to: var(--accent);
-}
-
-.empty-workspace .pairs-empty-zones .drop-zone-empty + .drop-zone-empty {
-  --zone-hue-from: var(--drift);
-  --zone-hue-to: color-mix(in srgb, var(--drift) 70%, var(--danger));
-  border-color: color-mix(in srgb, var(--drift) 45%, transparent);
-}
-
-.pairs-empty-zones .drop-zone-empty + .drop-zone-empty:hover:not(:disabled) {
-  color: var(--drift-text);
-  border-color: color-mix(in srgb, var(--drift) 60%, transparent);
-}
-
-/* Pairs: a wider list, two names a row. */
-.workspace-pairs {
-  grid-template-columns: clamp(340px, 38vw, 560px) minmax(0, 1fr);
-}
-
-/* Its tracks table has a column more (which file each track is from). */
-.workspace-pairs .detail-top {
-  grid-template-columns: minmax(280px, 372px) minmax(0, 1fr);
-}
-
 /* The list folded to a narrow column (FoldButton): each row's name and its
    state (the bar, the spinner while it runs); the header keeps its title
-   and the button unfolding it. Pairs keep both names. */
+   and the button unfolding it. */
 .workspace.list-collapsed {
   grid-template-columns: 210px minmax(0, 1fr);
 }
@@ -837,49 +544,31 @@
    and the add buttons follow the panel instead: the header's buttons open
    from nothing beside the fold button, which keeps to the right edge; the
    add buttons' label doesn't wrap, and their hint unrolls (below). */
-.list-folding .workspace:not(.list-collapsed) > .file-list > :not(.file-list-header, .file-list-add, .pair-add) {
+.list-folding .workspace:not(.list-collapsed) > .file-list > :not(.file-list-header, .file-list-add) {
   min-width: calc(clamp(300px, 30vw, 470px) - 32px);
 }
 
-.list-folding .workspace-pairs:not(.list-collapsed) > .file-list > :not(.file-list-header, .file-list-add, .pair-add) {
-  min-width: calc(clamp(340px, 38vw, 560px) - 32px);
-}
-
-.file-list-add span:first-child,
-.pair-add button span:first-child {
+.file-list-add span:first-child {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Folded, a pair's add buttons say "+ Réf." / "+ Corr.". */
-.list-collapsed .pair-add button span[data-short] {
-  font-size: 0;
-}
-
-.list-collapsed .pair-add button span[data-short]::after {
-  content: attr(data-short);
-  font-size: 12.5px;
-}
-
 /* The hint unrolls and fades in as the list unfolds, and back. */
-.file-list-add span + span,
-.pair-add button span + span {
+.file-list-add span + span {
   max-height: 3em;
   overflow: hidden;
 }
 
-.list-folding .file-list-add span + span,
-.list-folding .pair-add button span + span {
+.list-folding .file-list-add span + span {
   transition:
     max-height 220ms cubic-bezier(0.2, 0, 0, 1),
     opacity 220ms,
     margin-top 220ms;
 }
 
-.list-collapsed .file-list-add span + span,
-.list-collapsed .pair-add button span + span {
+.list-collapsed .file-list-add span + span {
   max-height: 0;
   opacity: 0;
   margin-top: -2px;
@@ -888,8 +577,7 @@
 @media (prefers-reduced-motion: reduce) {
   .list-folding .workspace,
   .list-folding .file-list-header > button,
-  .list-folding .file-list-add span + span,
-  .list-folding .pair-add button span + span {
+  .list-folding .file-list-add span + span {
     transition: none;
   }
 }
@@ -899,10 +587,9 @@
 }
 
 .list-collapsed .file-list-header > .remove-all-confirm,
-.list-collapsed .list-row:not(.pair-row) .list-row-detail,
+.list-collapsed .list-row-detail,
 .list-collapsed .list-badge,
-.list-collapsed .list-row-actions,
-.list-collapsed .file-list .pair-row-kind {
+.list-collapsed .list-row-actions {
   display: none;
 }
 
@@ -948,8 +635,7 @@
   white-space: nowrap;
 }
 
-.list-collapsed .list-row-name,
-.list-collapsed .pair-row .list-row-detail {
+.list-collapsed .list-row-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1054,10 +740,6 @@
 .detail-style-label,
 .detail-style-scale {
   color: var(--text-muted);
-}
-
-.detail-style-name {
-  font-weight: 600;
 }
 
 .detail-style-scale {

@@ -33,8 +33,7 @@
   /* Light: deep enough for 4.5:1 on white and on their own tints. */
   --danger: light-dark(#c42f41, #f47a87);
   --success: light-dark(#1a7f41, #4ade80);
-  /* The two kinds of segment, in the charts, their legends and the waveforms. */
-  --constant: light-dark(#3d5fe0, #5b8cff);
+  /* A warning (a badge's amber). */
   --drift: light-dark(#d97a0b, #f59e0b);
   /* The same colors for text: darker in the light theme, where small text
      on a background tinted with its own color must keep 4.5:1. The fills,
@@ -99,8 +98,8 @@ body,
   overscroll-behavior: none;
 }
 
-/* Scrollbars in the app's palette (the lists that scroll, the editor's
-   table...): thin, on a transparent track, a bit stronger under the
+/* Scrollbars in the app's palette (the lists that scroll, the Styles
+   form...): thin, on a transparent track, a bit stronger under the
    pointer. The standard properties, which WebView2's Chromium honors. */
 * {
   scrollbar-width: thin;
@@ -246,20 +245,6 @@ input {
   align-items: center;
   gap: 0.5em;
   padding: 0.7em 1em 0;
-}
-
-/* The two modes (PillSwitch, below), bigger than a switch inside a panel:
-   the window's navigation. */
-.pill-switch.mode-switch {
-  --pill-inset: 4px;
-  margin-left: 8px;
-}
-
-.pill-switch.mode-switch button {
-  height: 30px;
-  padding: 0 1.1em;
-  font-size: 13px;
-  font-weight: 500;
 }
 
 /* A choice between a few options, all visible, a selection pill sliding
@@ -448,7 +433,7 @@ input {
   overflow: hidden;
   text-align: left;
   /* Windows paths have no spaces to break on -- without this, a long one
-     (as in a result line naming the analyzed track) overflows the panel
+     (as in the detail's output line) overflows the panel
      instead of wrapping. Inherited by every descendant, not just <p>. */
   overflow-wrap: anywhere;
 }
@@ -518,8 +503,8 @@ button:focus-visible {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* The two main-flow actions (open a file, run an analysis) get the accent
-   fill; everything else (edit/export/preview controls) stays a plain
+/* The main-flow actions (add files, apply the style) get the accent
+   fill; everything else stays a plain
    outline button so the primary path is visually obvious at a glance. */
 .primary-button {
   background: var(--accent);
@@ -540,11 +525,6 @@ button:focus-visible {
   padding: 3px 9px;
   font-size: 0.85em;
   line-height: 16px;
-}
-
-/* A unit in an uppercase table header: "(ms)" must not become "(MS)". */
-.th-unit {
-  text-transform: none;
 }
 
 .export-cancel {
@@ -605,117 +585,6 @@ button:focus-visible {
   text-align: center;
 }
 
-/* Segments / Écoute, when the panel is too low for both at once. */
-.view-switch {
-  flex: 0 0 auto;
-}
-
-.view-hidden {
-  display: none;
-}
-
-.segments-result {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35em;
-}
-
-.preview > .error {
-  flex: 0 0 auto;
-}
-
-.preview-toolbar {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4em 1em;
-  font-size: 0.85em;
-}
-
-.preview-segment-picks {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  flex-wrap: wrap;
-  color: var(--text-muted);
-}
-
-.preview-controls {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  flex-wrap: wrap;
-  font-size: 0.85em;
-}
-
-.preview-controls label {
-  display: flex;
-  align-items: center;
-  gap: 0.3em;
-}
-
-.preview-controls input[type="number"] {
-  width: 4.5em;
-  /* 24px tall, as the small buttons beside it. */
-  padding: 1px 7px;
-}
-
-/* No up/down arrows (the arrow keys still step it): WebKitGTK shows them
-   at all times, eating the little room the number has, like the editor's
-   text fields. */
-.preview-controls input[type="number"]::-webkit-inner-spin-button,
-.preview-controls input[type="number"]::-webkit-outer-spin-button {
-  appearance: none;
-  margin: 0;
-}
-
-.preview-offset {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-/* "Entendre :" and its three checkboxes, kept together. */
-.preview-hear {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  white-space: nowrap;
-}
-
-.preview-listen-label {
-  color: var(--text-muted);
-}
-
-/* "+" / "−": drawn, not typed -- the font's glyphs sit at lowercase
-   height, never quite centered. Same height as the neighbouring buttons. */
-.zoom-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 24px;
-  padding: 0;
-}
-
-.zoom-button svg {
-  width: 10px;
-  height: 10px;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-}
-
 .error {
   color: var(--danger);
 }
@@ -739,19 +608,6 @@ button:focus-visible {
 .log-button {
   flex: 0 0 auto;
   align-self: flex-start;
-}
-
-/* At the right end of the playback row. */
-.preview-extra {
-  margin-left: auto;
-  display: flex;
-  gap: 0.4em;
-}
-
-/* In a row of controls: centered with them (the folder icon beside it). */
-.preview-extra .log-button,
-.detail-export .log-button {
-  align-self: center;
 }
 
 .log-dialog {
@@ -783,99 +639,9 @@ button:focus-visible {
   color-scheme: dark;
 }
 
-/* Airier tables, the same for every table of the app (tracks, editor,
-   "Vérifier toutes les pistes"), as in Bobine Subs: the
-   column rules kept (they help read a row across), every other row faintly
-   tinted, a little more room in the cells. The wrappers make these win over
-   the tables' own rules (BatchView.css, SegmentEditor.css). */
-.batch-tracks-side .batch-tracks-table th,
-.batch-tracks-side .batch-tracks-table td {
-  border: 1px solid var(--border);
-}
-
-.batch-tracks-side .batch-tracks-table td {
-  padding: 0.6em 0.5em;
-}
-
-/* Not wider than before: the editor's number fields would cut their values
-   ("1136.46") in a 1280px window. */
-.editor-table-wrap .editor-table td {
-  padding: 0.45em 0.5em;
-}
-
-.editor-table-wrap .editor-table tbody tr:nth-child(even),
-.batch-tracks-side .batch-tracks-table tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--surface-alt) 60%, transparent);
-}
-
-/* The dialogs' track tables in a frame, as the others: its outer edges are
-   the frame's. */
-.batch-tracks-side .tracks-table-wrap {
-  overflow: hidden;
-}
-
-.batch-tracks-side .batch-tracks-table {
-  border-collapse: collapse;
-  border-style: hidden;
-}
-
-/* An unreliable segment keeps its tint over the alternate rows. */
-.editor-table-wrap .editor-table tbody tr.editor-row-low-confidence {
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
-}
-
-/* A segment's confidence (ConfidenceGauge.tsx), as in Bobine Subs: a thin
-   bar filled to it, green when reliable, red when it's to check, the
-   percentage after. */
-.confidence {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.confidence-bar {
-  width: 3.5em;
-  height: 0.4em;
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--surface-alt);
-  box-shadow: inset 0 0 0 1px var(--border);
-}
-
-.confidence-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--success);
-}
-
-.confidence-weak .confidence-fill {
-  background: var(--danger);
-}
-
-.confidence-weak .confidence-value,
-.confidence-weak .confidence-flag {
-  color: var(--danger);
-  font-weight: 600;
-}
-
-/* Right-aligned values line up on the bar. */
-.confidence-value {
-  min-width: 3em;
-  text-align: right;
-}
-
-.confidence-flag {
-  width: 1em;
-  margin-left: -0.2em;
-}
-
 /* The redesign's look (2026-10, mockups on the design canvas): a soft light
-   at the top of a deep blue window, panels a shade above it, charts and
-   waveforms a shade below, and the main action in the logo's blue-to-violet
-   gradient. */
+   at the top of a warm dark window, panels a shade above it, and the main
+   action in the logo's coral-to-gold gradient. */
 body {
   background: radial-gradient(1200px 700px at 70% -10%, var(--bg-glow), var(--bg) 60%) fixed;
 }
@@ -1013,12 +779,6 @@ input {
   box-shadow: none;
 }
 
-.segment-chart,
-.waveform,
-.waveform-navigator-svg {
-  background: var(--surface-sunken);
-}
-
 /* The sliding pill: tinted with the gradient, its option in full text. */
 .pill-switch-pill {
   background: linear-gradient(
@@ -1063,28 +823,12 @@ input {
   transition: none !important;
 }
 
-/* With the 14px base, what was sized as a share of the text came out too
-   small (table headers under 9px): fixed floors, as in the mockups. Later in
-   the cascade than BatchView.css and SegmentEditor.css, same selectors. */
-.batch-tracks-table th,
-.editor-table th {
-  font-size: 11px;
-}
-
 .small-button {
   font-size: 12px;
 }
 
 .log {
   font-size: 12px;
-}
-
-.waveform-label {
-  font-size: 11px;
-}
-
-.waveform-ticks {
-  font-size: 10.5px;
 }
 
 /* The drawn warning sign (icons.tsx), in its text's color. */

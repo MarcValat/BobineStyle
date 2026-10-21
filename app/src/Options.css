@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 8px;
   /* Every setting in sight at the window's smallest (1024x640, the
-     version note included): no scrolling for the cache at the bottom. */
+     version note included): no scrolling. */
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -90,31 +90,4 @@
 .switch:checked::after {
   left: 21px;
   background: #ffffff;
-}
-
-.options-cache {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.options-cache-bar {
-  flex: 1 1 auto;
-  height: 6px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--surface-alt);
-}
-
-.options-cache-bar > span {
-  display: block;
-  height: 100%;
-  background: var(--gradient);
-}
-
-.options-cache-size {
-  color: var(--text-muted);
-  white-space: nowrap;
-  font-size: 0.9em;
-  font-variant-numeric: tabular-nums;
 }
