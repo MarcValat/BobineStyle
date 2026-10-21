@@ -78,7 +78,7 @@
         "displayLanguageSelector": false
       }
     },
-    "shortDescription": "Applique le style maison aux sous-titres français des MKV",
+    "shortDescription": "Applique un style propre et lisible aux sous-titres des MKV",
     "publisher": "Marc Valat"
   },
   "plugins": {

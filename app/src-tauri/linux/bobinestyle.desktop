@@ -4,8 +4,8 @@
 [Desktop Entry]
 Type=Application
 Name=Bobine Style
-Comment=Give the French subtitles of MKV files one clean house style
-Comment[fr]=Applique un style maison propre aux sous-titres français des MKV
+Comment=Give the subtitles of MKV files one clean, readable style
+Comment[fr]=Applique un style propre et lisible aux sous-titres des MKV
 Keywords=subtitles;style;ass;srt;mkv;fonts;
 Keywords[fr]=sous-titres;style;ass;srt;mkv;polices;
 Exec=bobinestyle

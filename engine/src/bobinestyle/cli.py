@@ -30,7 +30,7 @@ def _fail(message: str) -> None:
 
 @click.group()
 def main() -> None:
-    """Applique le style maison aux sous-titres français d'un MKV."""
+    """Applique un style aux sous-titres d'un MKV, dans les langues choisies."""
     # Windows consoles default to cp1252: accented titles would crash echo.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
