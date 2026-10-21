@@ -30,6 +30,29 @@ npm run check -- --full    # + clippy et les tests du moteur : ~1 min (pas penda
 
 `scripts/check.mjs` (repris de Bobine Audio) enchaîne `tsc`, Prettier, ESLint (règles des hooks React), knip (exports et dépendances inutilisés), les tests unitaires (Vitest, `src/*.test.ts` à côté de ce qu'ils testent), ruff (`check` et `format`) sur le moteur et `cargo fmt`. `npm install` active le hook de pré-commit (`../.githooks/pre-commit`), qui vérifie le formatage et le lint des seuls fichiers indexés. `npm run format` reformate l'app (Prettier), `uv run ruff format` le moteur, `cargo fmt` la coquille Rust.
 
+## Tests de bout en bout
+
+```
+npm run test:e2e                                   # tout
+npm run test:e2e -- e2e/workflows.spec.ts          # une suite
+npm run test:e2e -- -g "Styles"                    # les tests dont le nom contient « Styles »
+npx playwright show-report e2e/report              # le rapport du dernier passage (traces des échecs)
+```
+
+L'app dans Chromium, pilotée comme par un utilisateur (Playwright, `playwright.config.ts`, repris de Bobine Audio), contre le vrai moteur. Vite et le moteur des tests sont les leurs, sur leurs propres ports (1433 et 8769 ; la page est dirigée vers le moteur par `?enginePort=8769`), démarrés pour le passage puis arrêtés : jamais ceux de `tauri dev` (1420 et 8758). Le moteur des tests a son propre dossier de données (son `styles.json`, vidé avant chaque test), jamais celui de l'app.
+
+Les médias sont **synthétiques** (`e2e/make_media.py`, quelques secondes, refaits seulement quand le script change, dans `e2e/media/`, ignoré par git) : une vidéo 720p, un audio japonais ou français, et des sous-titres français complets et forcés (ASS), anglais (SRT), allemands, ou aucun.
+
+| Suite | Ce qu'elle vérifie |
+|---|---|
+| `workflows` | de bout en bout : pistes lues par langue, piste par défaut selon l'audio, style maison appliqué ; autres langues (anglais et allemand, SRT converti) ; un style créé dans la fenêtre Styles, puis un style propre à un fichier — chaque fichier écrit relu (noms et marquages des pistes, styles des scripts, polices jointes) |
+| `ui` | la liste (flèches, déplacer, retirer, « Tout retirer », repli retenu), langues / style / thème / langue de l'interface retenus, un fichier illisible, la fenêtre Styles (style maison non modifiable, « Modifier » d'une variante, noms requis et uniques, Annuler, Supprimer) |
+| `layout` | chaque écran à 1024×640 et 1440×900, deux thèmes, deux langues : icônes centrées au pixel, hauteurs entières, arrondis concentriques, texte coupé ou hors fenêtre, boutons voisins, contraste 4,5:1 |
+| `a11y` | accessibilité (axe-core, WCAG 2.1 A / AA) des écrans et dialogues |
+| `visual` | les écrans principaux comparés à des captures de référence, enregistrées au premier passage sur chaque système (`e2e/__screenshots__/<système>`, hors git) ; après un changement voulu, `npm run test:e2e -- e2e/visual.spec.ts --update-snapshots` |
+
+Chaque test échoue aussi sur une erreur du moteur (HTTP 4xx/5xx), de la page ou de la console, ou un fichier écrit à côté des médias. Hors de portée : la vraie fenêtre Tauri (barre de titre, dialogues natifs, glisser-déposer, WebView2 / WebKitGTK).
+
 ## Empaqueter (`tauri build`)
 
 ```
