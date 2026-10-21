@@ -138,7 +138,6 @@ function Dropdown({
         className={`dropdown-button ${className}${open && !closing ? " open" : ""}`}
         aria-haspopup="listbox"
         aria-expanded={open && !closing}
-        aria-label={label}
         disabled={disabled}
         onClick={() => (open ? close() : setOpen(true))}
         onKeyDown={(e) => {
@@ -148,6 +147,10 @@ function Dropdown({
           }
         }}
       >
+        {/* Its name: what it's for, then what it shows ("Langues : Français"),
+            the shown text being part of it as screen readers and voice
+            control expect. */}
+        <span className="dropdown-label">{label} </span>
         <span className="dropdown-shown">{shown}</span>
         {badge && <span className="dropdown-count">{badge}</span>}
         <svg className="dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true">
