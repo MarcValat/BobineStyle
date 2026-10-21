@@ -7,14 +7,14 @@
 <h1 align="center">Bobine Style</h1>
 
 <p align="center">
-  <b>Un style propre et lisible pour les sous-titres français de tes MKV</b>, à la bonne taille sur chaque vidéo.
+  <b>Un style propre et lisible pour les sous-titres de tes MKV</b>, dans les langues de ton choix, à la bonne taille sur chaque vidéo.
 </p>
 
 <p align="center">
   <a href="https://github.com/MarcValat/BobineStyle/releases/latest"><img src="https://img.shields.io/github/v/release/MarcValat/BobineStyle?label=version" alt="Dernière version"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011%20(x64)-0078D6?logo=windows" alt="Windows 10 | 11 (x64)">
   <img src="https://img.shields.io/badge/Linux-Debian%20%7C%20Ubuntu%20(.deb)-E95420?logo=linux&logoColor=white" alt="Linux : Debian | Ubuntu (.deb)">
-  <img src="https://img.shields.io/badge/interface-Fran%C3%A7ais-555" alt="Interface : français">
+  <img src="https://img.shields.io/badge/interface-Fran%C3%A7ais%20%7C%20English-555" alt="Français | English">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-GPL%20v3-blue" alt="Licence GPL v3"></a>
 </p>
 
@@ -23,13 +23,13 @@
 </p>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/main-dark.png">
-  <img src="docs/screenshots/main-light.png" alt="Bobine Style : les épisodes d'une saison traités, et ce qui a été fait aux pistes de sous-titres du premier">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/main-fr-dark.png">
+  <img src="docs/screenshots/main-fr-light.png" alt="Bobine Style : les épisodes d'une saison lus, français et anglais choisis ; à droite, ce qui sera fait aux pistes de sous-titres du premier">
 </picture>
 
 ## Pourquoi
 
-Les sous-titres français arrivent dans tous les styles : un Arial fin d'un côté, une police énorme de l'autre, une piste difficile à lire sur une scène claire. Sur toute une vidéothèque, c'est un patchwork. Les restyler à la main, c'est ouvrir chaque fichier dans un éditeur de sous-titres, trouver quel style sert aux dialogues, lequel aux italiques, ne pas toucher aux panneaux, puis remuxer.
+Les sous-titres arrivent dans tous les styles : un Arial fin d'un côté, une police énorme de l'autre, une piste difficile à lire sur une scène claire. Sur toute une vidéothèque, c'est un patchwork. Les restyler à la main, c'est ouvrir chaque fichier dans un éditeur de sous-titres, trouver quel style sert aux dialogues, lequel aux italiques, ne pas toucher aux panneaux, puis remuxer.
 
 Bobine Style fait tout ça en une passe, pour un fichier ou une série entière, et nomme les pistes pour que Plex (ou n'importe quel lecteur) choisisse la bonne tout seul.
 
@@ -40,14 +40,16 @@ Il fait partie de **Bobine**, une petite suite d'outils pour vidéothèque, avec
 ## Fonctionnalités
 
 - 🎨 **Un style maison** : Trebuchet MS gras, blanc avec contour et ombre noirs, et ses variantes : italique, haut de l'écran, répliques à tirets (centrées, tirets alignés), paroles simultanées en jaune.
+- ✏️ **Ou tes propres styles** : police, taille, couleurs, contour, ombre, marges, et chaque variante active ou non, avec un exemple à l'échelle de l'écran. Un style pour la liste, un autre pour un fichier ; importe-les et exporte-les.
+- 🌍 **Toutes les langues de sous-titres** : le français par défaut, ou l'anglais, l'allemand, le japonais… plusieurs à la fois. Les autres sont copiées telles quelles.
 - 📐 **La bonne taille sur chaque vidéo** : le style est défini pour un écran 1080p et adapté à chaque vidéo : même taille en 720p qu'en 4K, et un film scope (2,39:1) ou 4:3 garde la même taille à l'écran qu'un 16:9.
 - 🔍 **Des rôles trouvés à l'usage, pas au nom** : quel style sert aux dialogues, aux italiques, au haut de l'écran… est déduit de la façon dont chaque style est utilisé, quel que soit son nom. Les panneaux et la typo restent exactement comme ils étaient.
-- 🏷️ **Pistes complètes et forcées nommées et marquées** : *Français* et *Français (forcé)*. Les sous-titres par défaut suivent l'audio par défaut : forcés avec un audio français, complets sinon.
-- 🔤 **Polices jointes** : Trebuchet MS et les polices des panneaux sont jointes au MKV, pour que les sous-titres s'affichent pareil sur tous les lecteurs.
-- 📝 **Les SRT aussi** : les SRT français sont convertis en ASS dans le même style (italiques, `{\an8}`, répliques à tirets…).
+- 🏷️ **Pistes complètes et forcées nommées et marquées**, dans leur propre langue : *Français* et *Français (forcé)*, *English* et *English (forced)*… Les sous-titres par défaut suivent l'audio par défaut : forcés quand l'audio est dans leur langue, complets sinon.
+- 🔤 **Polices jointes** : la police du style et celles des panneaux sont jointes au MKV, pour que les sous-titres s'affichent pareil sur tous les lecteurs.
+- 📝 **Les SRT aussi** : les pistes SRT sont converties en ASS dans le même style (italiques, `{\an8}`, répliques à tirets…).
 - 🗂️ **Une série entière en une passe** : glisse un dossier, ses saisons sont incluses ; les fichiers déjà faits sont sautés.
 - 🛡️ **Rien de perdu** : vidéo, audio, sous-titres des autres langues et chapitres sont copiés tels quels, rien n'est réencodé, le fichier d'origine n'est jamais modifié, et chaque sortie est vérifiée avant d'être gardée.
-- 🖱️ **Glisser-déposer** de fichiers ou de dossiers entiers, thème clair ou sombre (ou celui du système), mises à jour automatiques.
+- 🖱️ **Glisser-déposer** de fichiers ou de dossiers entiers, en français ou en anglais, thème clair ou sombre (ou celui du système), mises à jour automatiques.
 
 ## Installation
 
@@ -67,14 +69,15 @@ Le moteur et ffmpeg sont fournis avec l'application. Quand une nouvelle version 
 ## Comment ça marche
 
 1. **Ajoute des MKV**, ou un dossier entier (une saison, une série), avec les boutons ou en les glissant sur la fenêtre.
-2. **Vérifie** ce qui sera fait : clique sur un fichier pour voir le sort de chaque piste de sous-titres, la piste par défaut et les polices à joindre.
-3. **Applique le style** : les nouveaux fichiers vont dans un dossier `Output` à côté des originaux (ou dans le dossier de ton choix), sous le même nom.
+2. **Choisis** en haut les langues de sous-titres, celle par défaut et le style.
+3. **Vérifie** ce qui sera fait : clique sur un fichier pour voir le sort de chaque piste de sous-titres, la piste par défaut et les polices à joindre.
+4. **Applique le style** : les nouveaux fichiers vont dans un dossier `Output` à côté des originaux (ou dans le dossier de ton choix), sous le même nom.
 
-📖 Le [guide d'utilisation](docs/guide.fr.md) explique tout en détail : le style maison, la détection des rôles, la piste par défaut, FAQ.
+📖 Le [guide d'utilisation](docs/guide.fr.md) explique tout en détail : les langues et la piste par défaut, les styles, la détection des rôles, FAQ.
 
 ## Bon à savoir
 
-- Seules les pistes **françaises** sont restylées (`fre`, ou une piste de langue indéterminée quand le fichier n'en a pas de française). Les autres langues restent telles quelles.
+- Seules les pistes des **langues choisies** sont restylées (une piste sans langue indiquée est prise d'après son titre, ou comme étant dans la langue par défaut quand le fichier n'en a aucune dans celle-ci). Les autres langues restent telles quelles.
 - Les pistes faites uniquement de panneaux (une piste « Signs ») sont marquées forcées mais pas restylées : leur typo est gardée telle qu'elle a été conçue.
 - Certaines applications TV (Plex sur certaines TV connectées, par exemple) transforment les sous-titres ASS en texte simple et ignorent tout style : un fichier n'y peut rien. Le style s'affiche sur les lecteurs qui rendent l'ASS (Plex sur ordinateur, Infuse, VLC, mpv, Kodi), et quand le serveur Plex incruste les sous-titres dans l'image.
 
